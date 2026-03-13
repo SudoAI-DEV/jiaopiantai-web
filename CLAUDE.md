@@ -39,7 +39,7 @@
 |------|------|----------|
 | 开发 (local) | PostgreSQL | `postgresql://postgres:postgres@localhost:5554/jiaopiantai` |
 | 测试 (Neon) | Neon PostgreSQL | `neondb` (pooler: ep-mute-cell-ad5uha1f-pooler.c-2.us-east-1.aws.neon.tech) |
-| 生产 (阿里云) | 阿里云 ECS PostgreSQL | 待确认 |
+| **生产 (Neon)** | Neon PostgreSQL | 同测试环境 |
 
 - **Neon 项目 ID**: summer-bonus-06642933
 - **Neon 凭证**: 存储在 .env.test (不提交)
@@ -85,8 +85,8 @@ DATABASE_URL=postgresql://neondb_owner:npg_xxx@ep-mute-cell-xxx-pooler.c-2.us-ea
 
 ### 生产环境
 ```bash
-# 使用阿里云 ECS PostgreSQL
-DATABASE_URL=postgresql://user:password@ecs-ip:5432/jiaopiantai
+# 使用 Neon PostgreSQL (与测试环境相同)
+DATABASE_URL=postgresql://neondb_owner:npg_xxx@ep-mute-cell-xxx-pooler.c-2.us-east-1.aws.neon.tech/neondb
 ```
 
 ---
@@ -107,8 +107,8 @@ DATABASE_URL=postgresql://user:password@ecs-ip:5432/jiaopiantai
           ┌───────────┴───────────┐
           ▼                       ▼
 ┌─────────────────────┐   ┌─────────────────────┐
-│   阿里云 ECS        │   │    阿里云 OSS      │
-│  (PostgreSQL)      │   │  (图片存储)        │
+│   Neon PostgreSQL  │   │    阿里云 OSS      │
+│  (生产数据库)      │   │  (图片存储)        │
 │                    │   │                    │
 └─────────────────────┘   └─────────────────────┘
 ```
