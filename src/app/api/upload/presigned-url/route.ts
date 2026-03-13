@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { generateFileKey } from "@/lib/oss";
+import { generateFileKey } from "@/lib/r2";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const key = generateFileKey(type, session.user.id, productId || "temp", fileName);
 
     // Generate presigned URL using our internal function
-    const { generateUploadUrl } = await import("@/lib/oss");
+    const { generateUploadUrl } = await import("@/lib/r2");
     const { uploadUrl } = await generateUploadUrl(key);
 
     return NextResponse.json({

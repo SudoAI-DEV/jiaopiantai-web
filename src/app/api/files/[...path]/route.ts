@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateDownloadUrl } from "@/lib/oss";
+import { generateDownloadUrl } from "@/lib/r2";
 
 export async function GET(
   request: NextRequest,

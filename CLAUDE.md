@@ -44,11 +44,15 @@
 - **Neon 项目 ID**: summer-bonus-06642933
 - **Neon 凭证**: 存储在 .env.test (不提交)
 
-### 阿里云 OSS
-- **Bucket**: jiaopiantai-images
-- **Region**: oss-cn-hangzhou
-- **公共域名**: https://images.jiaopiantai.com (如配置)
-- **凭证**: 存储在 Vercel 环境变量中
+### Cloudflare R2 (文件存储)
+- **Bucket**: jiaopiantai
+- **Endpoint**: https://88a96747babe00a5c70ab1954e53e136.r2.cloudflarestorage.com
+- **公共域名**: https://static.jiaopiantai.com (如配置)
+- **环境变量**:
+  - `R2_BUCKET_NAME`
+  - `R2_ENDPOINT`
+  - `R2_ACCESS_KEY_ID`
+  - `R2_SECRET_ACCESS_KEY`
 
 ### API 服务
 - **内部 API Key**: 用于 AI 服务调用
@@ -63,10 +67,10 @@
 DATABASE_URL          # PostgreSQL 连接字符串
 BETTER_AUTH_SECRET    # 认证密钥 (openssl rand -base64 32)
 BETTER_AUTH_URL       # 生产域名: https://jiaopiantai.com
-ALIYUN_OSS_ACCESS_KEY_ID
-ALIYUN_OSS_ACCESS_KEY_SECRET
-ALIYUN_OSS_BUCKET=jiaopiantai-images
-ALIYUN_OSS_REGION=oss-cn-hangzhou
+R2_BUCKET_NAME        # R2 Bucket 名称
+R2_ENDPOINT           # R2 Endpoint
+R2_ACCESS_KEY_ID      # R2 Access Key
+R2_SECRET_ACCESS_KEY  # R2 Secret Key
 INTERNAL_API_KEY     # 内部 API 调用密钥
 ```
 
@@ -107,8 +111,8 @@ DATABASE_URL=postgresql://neondb_owner:npg_xxx@ep-mute-cell-xxx-pooler.c-2.us-ea
           ┌───────────┴───────────┐
           ▼                       ▼
 ┌─────────────────────┐   ┌─────────────────────┐
-│   Neon PostgreSQL  │   │    阿里云 OSS      │
-│  (生产数据库)      │   │  (图片存储)        │
+│   Neon PostgreSQL  │   │   Cloudflare R2    │
+│  (生产数据库)      │   │   (文件存储)        │
 │                    │   │                    │
 └─────────────────────┘   └─────────────────────┘
 ```

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { generateFileKey } from "@/lib/oss";
+import { generateFileKey } from "@/lib/r2";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 export async function POST(request: NextRequest) {
