@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth-utils";
 import { db } from "@/lib/db";
-import { userProfiles, products, creditTransactions } from "@/lib/db/schema";
+import { userProfiles, products, creditTransactions, type Product, type CreditTransaction } from "@/lib/db/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -26,7 +26,7 @@ async function getDashboardData() {
     .groupBy(products.status);
 
   const productStats: Record<string, number> = {};
-  productStatsRaw.forEach((stat) => {
+  productStatsRaw.forEach((stat: { status: string; count: number }) => {
     productStats[stat.status] = Number(stat.count);
   });
 
@@ -200,7 +200,7 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {recentProducts.map((product) => (
+                {(recentProducts as Product[]).map((product) => (
                   <Link
                     key={product.id}
                     href={`/products/${product.id}`}
@@ -246,7 +246,7 @@ export default async function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {recentTransactions.map((tx) => (
+                {recentTransactions.map((tx: CreditTransaction) => (
                   <div
                     key={tx.id}
                     className="flex items-center justify-between p-3"

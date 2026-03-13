@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     // Remove this in production
     setTimeout(async () => {
       try {
-        const mockResults = [];
+        const mockResults: { url: string; thumbnailUrl: string }[] = [];
         const imageCount = Math.min(task.targetCount, 20);
 
         for (let i = 0; i < imageCount; i++) {
