@@ -325,9 +325,7 @@ export function NewProductForm({
               <div className="aspect-video bg-gray-100 flex items-center justify-center">
                 {style.thumbnailUrl ? (
                   <img src={style.thumbnailUrl} alt={style.name} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-lg">🎨</span>
-                )}
+                ) : null}
               </div>
               <div className="p-1.5 bg-white">
                 <p className="font-medium text-xs text-[#4E342E] truncate">{style.name}</p>
