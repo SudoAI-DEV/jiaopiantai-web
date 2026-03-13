@@ -7,47 +7,31 @@ import { eq } from "drizzle-orm";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, phoneNumber, password, name, shopName, phone, category } = body;
+    const { phone, password, name, shopName, category } = body;
 
-    let user;
+    // Use phone number as the email identifier (since Better Auth uses email field)
+    const email = `${phone}@phone.local`;
 
-    if (phoneNumber) {
-      // Phone number sign up
-      // First check if user exists
-      const existingUser = await db.query.users.findFirst({
-        where: eq(users.phone, phoneNumber),
-      });
+    // Check if user exists
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    });
 
-      if (existingUser) {
-        return NextResponse.json(
-          { error: "该手机号已注册" },
-          { status: 400 }
-        );
-      }
-
-      // Create user with Better Auth phone sign up
-      user = await auth.api.signUpPhone({
-        body: {
-          phoneNumber,
-          password,
-          name: name || phoneNumber,
-        },
-      });
-    } else if (email) {
-      // Email sign up (fallback)
-      user = await auth.api.signUpEmail({
-        body: {
-          email,
-          password,
-          name: name || email.split("@")[0],
-        },
-      });
-    } else {
+    if (existingUser) {
       return NextResponse.json(
-        { error: "请提供手机号或邮箱" },
+        { error: "该手机号已注册" },
         { status: 400 }
       );
     }
+
+    // Create user with Better Auth using phone as email
+    const user = await auth.api.signUpEmail({
+      body: {
+        email,
+        password,
+        name: name || phone,
+      },
+    });
 
     if (!user) {
       return NextResponse.json(
@@ -56,13 +40,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Update user with phone number
+    await db.update(users)
+      .set({ phone })
+      .where(eq(users.id, user.user.id));
+
     // Create user profile with default customer role
     await db.insert(userProfiles).values({
       id: user.user.id,
       userId: user.user.id,
       role: "customer",
       shopName: shopName || null,
-      phone: phoneNumber || phone || null,
+      phone: phone || null,
       category: category || null,
       creditsBalance: 0,
       creditsFrozen: 0,

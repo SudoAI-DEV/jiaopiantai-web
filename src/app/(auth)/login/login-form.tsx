@@ -22,10 +22,13 @@ export function LoginForm() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/sign-in/phone", {
+      // Use phone as email (append @phone.local)
+      const email = `${phone}@phone.local`;
+      
+      const res = await fetch("/api/auth/sign-in/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: phone, password }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();

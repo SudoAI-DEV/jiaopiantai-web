@@ -61,11 +61,11 @@ export function RegisterForm() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/sign-up/phone", {
+      const res = await fetch("/api/auth/sign-up", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phoneNumber: formData.phone,
+          phone: formData.phone,
           password: formData.password,
           name: formData.name,
           shopName: formData.shopName,
@@ -81,11 +81,12 @@ export function RegisterForm() {
       }
 
       // Auto login after registration
-      const loginRes = await fetch("/api/auth/sign-in/phone", {
+      const email = `${formData.phone}@phone.local`;
+      const loginRes = await fetch("/api/auth/sign-in/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phoneNumber: formData.phone,
+          email,
           password: formData.password,
         }),
       });
