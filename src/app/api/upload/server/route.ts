@@ -24,13 +24,19 @@ export async function POST(request: NextRequest) {
 
     const key = generateFileKey(type, session.user.id, productId, file.name);
 
-    // Use S3 client directly
+    console.log("Uploading to R2:", {
+      endpoint: process.env.R2_ENDPOINT ? "set" : "missing",
+      bucket: process.env.R2_BUCKET_NAME ? "set" : "missing",
+      key: key.substring(0, 50),
+    });
+
+    // Use S3 client
     const s3Client = new S3Client({
       region: "auto",
       endpoint: process.env.R2_ENDPOINT,
       credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+        accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
       },
     });
 
@@ -44,7 +50,9 @@ export async function POST(request: NextRequest) {
       ContentType: file.type,
     });
 
-    await s3Client.send(command);
+    const result = await s3Client.send(command);
+
+    console.log("Upload success:", result);
 
     return NextResponse.json({
       key,
@@ -53,7 +61,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(
-      { error: "Failed to upload file" },
+      { error: "Failed to upload file", details: String(error) },
       { status: 500 }
     );
   }
