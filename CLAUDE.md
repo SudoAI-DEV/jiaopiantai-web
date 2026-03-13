@@ -21,6 +21,100 @@
 
 ---
 
+## 环境配置
+
+### 域名
+- **生产域名**: https://jiaopiantai.com
+- **测试/开发**: https://jiaopiantai-web.vercel.app (Vercel 自动分配)
+
+### Vercel
+- **项目名**: jiaopiantai
+- **团队**: SudoAI-DEV
+- **GitHub**: https://github.com/SudoAI-DEV/jiaopiantai-web
+- **生产环境**: https://vercel.com/sudoai-devs-projects/jiaopiantai
+
+### 数据库
+
+| 环境 | 类型 | 连接信息 |
+|------|------|----------|
+| 开发 (local) | PostgreSQL | `postgresql://postgres:postgres@localhost:5554/jiaopiantai` |
+| 测试 (Neon) | Neon PostgreSQL | `neondb` (pooler: ep-mute-cell-ad5uha1f-pooler.c-2.us-east-1.aws.neon.tech) |
+| 生产 (阿里云) | 阿里云 ECS PostgreSQL | 待确认 |
+
+- **Neon 项目 ID**: summer-bonus-06642933
+- **Neon 凭证**: 存储在 .env.test (不提交)
+
+### 阿里云 OSS
+- **Bucket**: jiaopiantai-images
+- **Region**: oss-cn-hangzhou
+- **公共域名**: https://images.jiaopiantai.com (如配置)
+- **凭证**: 存储在 Vercel 环境变量中
+
+### API 服务
+- **内部 API Key**: 用于 AI 服务调用
+- **AI Service URL**: 可配置 (本地开发时 http://localhost:8080)
+
+---
+
+## 环境变量
+
+### 必需变量
+```
+DATABASE_URL          # PostgreSQL 连接字符串
+BETTER_AUTH_SECRET    # 认证密钥 (openssl rand -base64 32)
+BETTER_AUTH_URL       # 生产域名: https://jiaopiantai.com
+ALIYUN_OSS_ACCESS_KEY_ID
+ALIYUN_OSS_ACCESS_KEY_SECRET
+ALIYUN_OSS_BUCKET=jiaopiantai-images
+ALIYUN_OSS_REGION=oss-cn-hangzhou
+INTERNAL_API_KEY     # 内部 API 调用密钥
+```
+
+### 本地开发
+```bash
+cp .env.example .env.local
+# 开发连接本地 PostgreSQL
+DATABASE_URL=postgresql://postgres:postgres@localhost:5554/jiaopiantai
+```
+
+### 测试环境
+```bash
+# 使用 Neon 免费层
+DATABASE_URL=postgresql://neondb_owner:npg_xxx@ep-mute-cell-xxx-pooler.c-2.us-east-1.aws.neon.tech/neondb
+```
+
+### 生产环境
+```bash
+# 使用阿里云 ECS PostgreSQL
+DATABASE_URL=postgresql://user:password@ecs-ip:5432/jiaopiantai
+```
+
+---
+
+## 部署架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        用户访问                              │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Vercel (前端 + SSR)                      │
+│                   https://jiaopiantai.com                   │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+          ┌───────────┴───────────┐
+          ▼                       ▼
+┌─────────────────────┐   ┌─────────────────────┐
+│   阿里云 ECS        │   │    阿里云 OSS      │
+│  (PostgreSQL)      │   │  (图片存储)        │
+│                    │   │                    │
+└─────────────────────┘   └─────────────────────┘
+```
+
+---
+
 ## Design Context
 
 ### Users
