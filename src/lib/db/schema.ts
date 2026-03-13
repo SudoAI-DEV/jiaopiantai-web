@@ -1,347 +1,403 @@
-import { sqliteTable, text, integer, real, primaryKey, index } from 'drizzle-orm/sqlite-core';
+import { 
+  sqliteTable, 
+  pgTable,
+  text, 
+  integer, 
+  real, 
+  primaryKey, 
+  index,
+  boolean,
+  timestamp,
+  serial,
+  varchar,
+  jsonb
+} from 'drizzle-orm/sqlite-core';
 import { relations } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 
-// 用户表 - Better Auth 兼容
-export const users = sqliteTable('users', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  emailVerified: integer('email_verified', { mode: 'boolean' }).default(false),
-  image: text('image'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
-});
+// Determine if we're using PostgreSQL
+const isPg = process.env.DATABASE_URL?.startsWith('postgresql');
 
-// 会话表
-export const sessions = sqliteTable('sessions', {
-  id: text('id').primaryKey(),
-  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
-  token: text('token').notNull().unique(),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
-  ipAddress: text('ip_address'),
-  userAgent: text('user_agent'),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-});
+// Helper for text column
+const textCol = (name: string) => isPg ? varchar(name, { length: 255 }) : text(name);
 
-// 账户表
-export const accounts = sqliteTable('accounts', {
-  id: text('id').primaryKey(),
-  accountId: text('account_id').notNull(),
-  providerId: text('provider_id').notNull(),
-  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  accessToken: text('access_token'),
-  refreshToken: text('refresh_token'),
-  idToken: text('id_token'),
-  accessTokenExpiresAt: integer('access_token_expires_at', { mode: 'timestamp' }),
-  refreshTokenExpiresAt: integer('refresh_token_expires_at', { mode: 'timestamp' }),
-  scope: text('scope'),
-  password: text('password'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
-});
+// Helper for id
+const idCol = (name: string) => isPg ? serial(name).primaryKey() : text(name).primaryKey();
 
-// 验证表
-export const verifications = sqliteTable('verifications', {
-  id: text('id').primaryKey(),
-  identifier: text('identifier').notNull(),
-  value: text('value').notNull(),
-  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' }),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }),
-});
+// Helper for timestamp
+const timestampCol = (name: string) => isPg 
+  ? timestamp(name, { withTimezone: true, mode: 'timestamp' }).notNull()
+  : integer(name, { mode: 'timestamp' }).notNull();
 
-// 扩展用户表 - 应用特定字段
-export const userProfiles = sqliteTable('user_profiles', {
-  id: text('id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
-  role: text('role', { enum: ['customer', 'admin'] }).default('customer').notNull(),
-  shopName: text('shop_name'),
-  phone: text('phone'),
-  category: text('category'),
-  creditsBalance: integer('credits_balance').default(0).notNull(),
-  creditsFrozen: integer('credits_frozen').default(0).notNull(),
-  creditsTotalSpent: integer('credits_total_spent').default(0).notNull(),
-});
+// Helper for createdAt/updatedAt
+const createdAt = () => isPg 
+  ? timestamp('created_at', { withTimezone: true, mode: 'timestamp' }).notNull().default(sql`now()`)
+  : integer('created_at', { mode: 'timestamp' }).notNull();
 
-// 角色枚举
-export const roleEnum = ['customer', 'admin'] as const;
-export type Role = typeof roleEnum[number];
+const updatedAt = () => isPg 
+  ? timestamp('updated_at', { withTimezone: true, mode: 'timestamp' }).notNull().default(sql`now()`)
+  : integer('updated_at', { mode: 'timestamp' }).notNull();
 
-// 产品状态枚举
-export const productStatusEnum = ['draft', 'submitted', 'queued', 'processing', 'reviewing', 'client_reviewing', 'feedback_received', 'reworking', 'completed', 'failed', 'cancelled'] as const;
-export type ProductStatus = typeof productStatusEnum[number];
+// Users table - Better Auth compatible
+export const users = isPg 
+  ? pgTable('users', {
+      id: serial('id').primaryKey(),
+      name: varchar('name', { length: 255 }).notNull(),
+      email: varchar('email', { length: 255 }).notNull().unique(),
+      emailVerified: boolean('email_verified').default(false),
+      image: varchar('image', { length: 500 }),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
+    })
+  : sqliteTable('users', {
+      id: text('id').primaryKey(),
+      name: text('name').notNull(),
+      email: text('email').notNull().unique(),
+      emailVerified: integer('email_verified', { mode: 'boolean' }).default(false),
+      image: text('image'),
+      createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+    });
 
-// 图片审核状态枚举
-export const imageReviewStatusEnum = ['pending', 'approved', 'rejected', 'regenerate'] as const;
-export type ImageReviewStatus = typeof imageReviewStatusEnum[number];
+// Sessions table
+export const sessions = isPg
+  ? pgTable('sessions', {
+      id: serial('id').primaryKey(),
+      expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+      token: varchar('token', { length: 255 }).notNull().unique(),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
+      ipAddress: varchar('ip_address', { length: 50 }),
+      userAgent: text('user_agent'),
+      userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    })
+  : sqliteTable('sessions', {
+      id: text('id').primaryKey(),
+      expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+      token: text('token').notNull().unique(),
+      createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+      ipAddress: text('ip_address'),
+      userAgent: text('user_agent'),
+      userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    });
 
-// 交易类型枚举
-export const transactionTypeEnum = ['recharge', 'purchase', 'submission', 'completion', 'refund'] as const;
-export type TransactionType = typeof transactionTypeEnum[number];
+// Accounts table
+export const accounts = isPg
+  ? pgTable('accounts', {
+      id: serial('id').primaryKey(),
+      accountId: varchar('account_id', { length: 255 }).notNull(),
+      providerId: varchar('provider_id', { length: 255 }).notNull(),
+      userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+      accessToken: text('access_token'),
+      refreshToken: text('refresh_token'),
+      idToken: text('id_token'),
+      accessTokenExpiresAt: timestamp('access_token_expires_at', { withTimezone: true }),
+      refreshTokenExpiresAt: timestamp('refresh_token_expires_at', { withTimezone: true }),
+      scope: text('scope'),
+      password: text('password'),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
+    })
+  : sqliteTable('accounts', {
+      id: text('id').primaryKey(),
+      accountId: text('account_id').notNull(),
+      providerId: text('provider_id').notNull(),
+      userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+      accessToken: text('access_token'),
+      refreshToken: text('refresh_token'),
+      idToken: text('id_token'),
+      accessTokenExpiresAt: integer('access_token_expires_at', { mode: 'timestamp' }),
+      refreshTokenExpiresAt: integer('refresh_token_expires_at', { mode: 'timestamp' }),
+      scope: text('scope'),
+      password: text('password'),
+      createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+    });
 
-// AI 任务状态枚举
-export const aiTaskStatusEnum = ['pending', 'queued', 'processing', 'completed', 'failed', 'cancelled'] as const;
-export type AITaskStatus = typeof aiTaskStatusEnum[number];
+// Verifications table
+export const verifications = isPg
+  ? pgTable('verifications', {
+      id: serial('id').primaryKey(),
+      identifier: varchar('identifier', { length: 255 }).notNull(),
+      value: text('value').notNull(),
+      expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+      createdAt: timestamp('created_at', { withTimezone: true }),
+    })
+  : sqliteTable('verifications', {
+      id: text('id').primaryKey(),
+      identifier: text('identifier').notNull(),
+      value: text('value').notNull(),
+      expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+      createdAt: integer('created_at', { mode: 'timestamp' }),
+    });
 
-// 反馈类型枚举
-export const feedbackTypeEnum = ['perfect', 'minor_issues', 'major_issues', 'other'] as const;
-export type FeedbackType = typeof feedbackTypeEnum[number];
+// User profiles table
+export const userProfiles = isPg
+  ? pgTable('user_profiles', {
+      id: serial('id').primaryKey(),
+      userId: integer('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+      role: varchar('role', { length: 20 }).default('customer'),
+      shopName: varchar('shop_name', { length: 255 }),
+      phone: varchar('phone', { length: 20 }),
+      creditsBalance: integer('credits_balance').default(0),
+      creditsFrozen: integer('credits_frozen').default(0),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
+    })
+  : sqliteTable('user_profiles', {
+      id: text('id').primaryKey(),
+      userId: text('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+      role: text('role').default('customer'),
+      shopName: text('shop_name'),
+      phone: text('phone'),
+      creditsBalance: integer('credits_balance').default(0),
+      creditsFrozen: integer('credits_frozen').default(0),
+      createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+    });
 
-// 点数交易记录表
-export const creditTransactions = sqliteTable('credit_transactions', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').notNull(),
-  type: text('type', { enum: transactionTypeEnum }).notNull(),
-  amount: integer('amount').notNull(),
-  balanceAfter: integer('balance_after').notNull(),
-  productId: text('product_id'),
-  description: text('description'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-}, (table) => ({
-  userIdIdx: index('ct_user_id_idx').on(table.userId),
-}));
+export type UserProfile = typeof userProfiles.$inferSelect;
+export type NewUserProfile = typeof userProfiles.$inferInsert;
 
-// 产品表
-export const products = sqliteTable('products', {
-  id: text('id').primaryKey(),
-  productNumber: text('product_number').notNull().unique(),
-  userId: text('user_id').notNull(),
-  name: text('name').notNull(),
-  category: text('category').notNull(),
-  description: text('description'),
-  shootingRequirements: text('shooting_requirements').notNull(),
-  stylePreference: text('style_preference').notNull(),
-  specialNotes: text('special_notes'),
-  deliveryCount: integer('delivery_count').default(6).notNull(),
-  status: text('status', { enum: productStatusEnum }).default('draft').notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  updatedAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-}, (table) => ({
-  userIdIdx: index('product_user_id_idx').on(table.userId),
-  productNumberIdx: index('product_number_idx').on(table.productNumber),
-}));
+// Credit transactions table
+export const creditTransactions = isPg
+  ? pgTable('credit_transactions', {
+      id: serial('id').primaryKey(),
+      userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+      type: varchar('type', { length: 20 }).notNull(),
+      amount: integer('amount').notNull(),
+      balanceAfter: integer('balance_after').notNull(),
+      description: text('description'),
+      referenceId: varchar('reference_id', { length: 100 }),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+    })
+  : sqliteTable('credit_transactions', {
+      id: text('id').primaryKey(),
+      userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+      type: text('type').notNull(),
+      amount: integer('amount').notNull(),
+      balanceAfter: integer('balance_after').notNull(),
+      description: text('description'),
+      referenceId: text('reference_id'),
+      createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+    });
 
-// 产品原始图片表
-export const productSourceImages = sqliteTable('product_source_images', {
-  id: text('id').primaryKey(),
-  productId: text('product_id').notNull(),
-  url: text('url').notNull(),
-  fileName: text('file_name').notNull(),
-  fileSize: integer('file_size'),
-  mimeType: text('mime_type'),
-  sortOrder: integer('sort_order').default(0),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-}, (table) => ({
-  productIdIdx: index('source_image_product_idx').on(table.productId),
-}));
-
-// AI 生成图片表
-export const productGeneratedImages = sqliteTable('product_generated_images', {
-  id: text('id').primaryKey(),
-  productId: text('product_id').notNull(),
-  url: text('url').notNull(),
-  thumbnailUrl: text('thumbnail_url'),
-  batchNumber: integer('batch_number').default(1).notNull(),
-  reviewStatus: text('review_status', { enum: imageReviewStatusEnum }).default('pending').notNull(),
-  sortOrder: integer('sort_order').default(0),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  reviewedAt: integer('reviewed_at', { mode: 'timestamp' }),
-  reviewedBy: text('reviewed_by'),
-}, (table) => ({
-  productIdIdx: index('generated_image_product_idx').on(table.productId),
-}));
-
-// 图片反馈表
-export const imageFeedbacks = sqliteTable('image_feedbacks', {
-  id: text('id').primaryKey(),
-  productId: text('product_id').notNull(),
-  userId: text('user_id').notNull(),
-  type: text('type', { enum: feedbackTypeEnum }).notNull(),
-  description: text('description'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-});
-
-// 风格模板表
-export const styleTemplates = sqliteTable('style_templates', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  description: text('description'),
-  thumbnailUrl: text('thumbnail_url'),
-  isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
-  sortOrder: integer('sort_order').default(0),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-});
-
-// 产品风格选择表
-export const productStyleSelections = sqliteTable('product_style_selections', {
-  id: text('id').primaryKey(),
-  productId: text('product_id').notNull(),
-  styleId: text('style_id').notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-});
-
-// 交付批次表
-export const deliveryBatches = sqliteTable('delivery_batches', {
-  id: text('id').primaryKey(),
-  productId: text('product_id').notNull(),
-  batchNumber: integer('batch_number').notNull(),
-  imageCount: integer('image_count').notNull(),
-  deliveredAt: integer('delivered_at', { mode: 'timestamp' }).notNull(),
-  deliveredBy: text('delivered_by'),
-});
-
-// 交付图片明细表
-export const deliveryImages = sqliteTable('delivery_images', {
-  id: text('id').primaryKey(),
-  deliveryBatchId: text('delivery_batch_id').notNull(),
-  imageId: text('image_id').notNull(),
-  sortOrder: integer('sort_order').default(0),
-});
-
-// AI 生成任务表
-export const aiGenerationTasks = sqliteTable('ai_generation_tasks', {
-  id: text('id').primaryKey(),
-  productId: text('product_id').notNull(),
-  batchNumber: integer('batch_number').default(1).notNull(),
-  status: text('status', { enum: aiTaskStatusEnum }).default('pending').notNull(),
-  targetCount: integer('target_count').default(20).notNull(),
-  resultCount: integer('result_count'),
-  errorMessage: text('error_message'),
-  startedAt: integer('started_at', { mode: 'timestamp' }),
-  completedAt: integer('completed_at', { mode: 'timestamp' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-});
-
-// 操作审计日志表
-export const operationLogs = sqliteTable('operation_logs', {
-  id: text('id').primaryKey(),
-  userId: text('user_id'),
-  action: text('action').notNull(),
-  resourceType: text('resource_type').notNull(),
-  resourceId: text('resource_id'),
-  details: text('details'),
-  ipAddress: text('ip_address'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-});
-
-// 用户关系
-export const usersRelations = relations(users, ({ one, many }) => ({
-  profile: one(userProfiles, {
-    fields: [users.id],
-    references: [userProfiles.id],
-  }),
-  products: many(products),
-  creditTransactions: many(creditTransactions),
-}));
-
-// 用户配置关系
-export const userProfilesRelations = relations(userProfiles, ({ one }) => ({
-  user: one(users, {
-    fields: [userProfiles.id],
-    references: [users.id],
-  }),
-}));
-
-// 产品关系
-export const productsRelations = relations(products, ({ one, many }) => ({
-  user: one(users, {
-    fields: [products.userId],
-    references: [users.id],
-  }),
-  sourceImages: many(productSourceImages),
-  generatedImages: many(productGeneratedImages),
-}));
-
-// 原始图片关系
-export const productSourceImagesRelations = relations(productSourceImages, ({ one }) => ({
-  product: one(products, {
-    fields: [productSourceImages.productId],
-    references: [products.id],
-  }),
-}));
-
-// 生成图片关系
-export const productGeneratedImagesRelations = relations(productGeneratedImages, ({ one }) => ({
-  product: one(products, {
-    fields: [productGeneratedImages.productId],
-    references: [products.id],
-  }),
-}));
-
-// 反馈关系
-export const imageFeedbacksRelations = relations(imageFeedbacks, ({ one }) => ({
-  product: one(products, {
-    fields: [imageFeedbacks.productId],
-    references: [products.id],
-  }),
-  user: one(users, {
-    fields: [imageFeedbacks.userId],
-    references: [users.id],
-  }),
-}));
-
-// 风格选择关系
-export const productStyleSelectionsRelations = relations(productStyleSelections, ({ one }) => ({
-  product: one(products, {
-    fields: [productStyleSelections.productId],
-    references: [products.id],
-  }),
-  style: one(styleTemplates, {
-    fields: [productStyleSelections.styleId],
-    references: [styleTemplates.id],
-  }),
-}));
-
-// 交付批次关系
-export const deliveryBatchesRelations = relations(deliveryBatches, ({ one, many }) => ({
-  product: one(products, {
-    fields: [deliveryBatches.productId],
-    references: [products.id],
-  }),
-  deliveredByUser: one(users, {
-    fields: [deliveryBatches.deliveredBy],
-    references: [users.id],
-  }),
-  images: many(deliveryImages),
-}));
-
-// 交付图片关系
-export const deliveryImagesRelations = relations(deliveryImages, ({ one }) => ({
-  batch: one(deliveryBatches, {
-    fields: [deliveryImages.deliveryBatchId],
-    references: [deliveryBatches.id],
-  }),
-  image: one(productGeneratedImages, {
-    fields: [deliveryImages.imageId],
-    references: [productGeneratedImages.id],
-  }),
-}));
-
-// 任务关系
-export const aiGenerationTasksRelations = relations(aiGenerationTasks, ({ one }) => ({
-  product: one(products, {
-    fields: [aiGenerationTasks.productId],
-    references: [products.id],
-  }),
-}));
-
-// 审计日志关系
-export const operationLogsRelations = relations(operationLogs, ({ one }) => ({
-  user: one(users, {
-    fields: [operationLogs.userId],
-    references: [users.id],
-  }),
-}));
-
-// 导出类型
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
-export type Product = typeof products.$inferSelect;
-export type NewProduct = typeof products.$inferInsert;
-export type ProductSourceImage = typeof productSourceImages.$inferSelect;
-export type ProductGeneratedImage = typeof productGeneratedImages.$inferSelect;
 export type CreditTransaction = typeof creditTransactions.$inferSelect;
-export type StyleTemplate = typeof styleTemplates.$inferSelect;
-export type DeliveryBatch = typeof deliveryBatches.$inferSelect;
+
+// Products table
+export const products = isPg
+  ? pgTable('products', {
+      id: serial('id').primaryKey(),
+      userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+      productNumber: varchar('product_number', { length: 50 }).notNull(),
+      name: varchar('name', { length: 255 }).notNull(),
+      category: varchar('category', { length: 50 }).notNull(),
+      description: text('description'),
+      status: varchar('status', { length: 30 }).default('draft'),
+      deliveryCount: integer('delivery_count').default(6),
+      shootingRequirements: text('shooting_requirements'),
+      stylePreference: text('style_preference'),
+      specialNotes: text('special_notes'),
+      selectedStyleId: varchar('selected_style_id', { length: 50 }),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
+    })
+  : sqliteTable('products', {
+      id: text('id').primaryKey(),
+      userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+      productNumber: text('product_number').notNull(),
+      name: text('name').notNull(),
+      category: text('category').notNull(),
+      description: text('description'),
+      status: text('status').default('draft'),
+      deliveryCount: integer('delivery_count').default(6),
+      shootingRequirements: text('shooting_requirements'),
+      stylePreference: text('style_preference'),
+      specialNotes: text('special_notes'),
+      selectedStyleId: text('selected_style_id'),
+      createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+    });
+
+export type Product = typeof products.$inferSelect;
+export type ProductStatus = Product['status'];
+
+// Product source images
+export const productSourceImages = isPg
+  ? pgTable('product_source_images', {
+      id: serial('id').primaryKey(),
+      productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+      url: text('url').notNull(),
+      sortOrder: integer('sort_order').default(0),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+    })
+  : sqliteTable('product_source_images', {
+      id: text('id').primaryKey(),
+      productId: text('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+      url: text('url').notNull(),
+      sortOrder: integer('sort_order').default(0),
+      createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+    });
+
+export type ProductSourceImage = typeof productSourceImages.$inferSelect;
+
+// Product generated images
+export const productGeneratedImages = isPg
+  ? pgTable('product_generated_images', {
+      id: serial('id').primaryKey(),
+      productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+      url: text('url').notNull(),
+      thumbnailUrl: text('thumbnail_url'),
+      sortOrder: integer('sort_order').default(0),
+      reviewStatus: varchar('review_status', { length: 20 }).default('pending'),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+    })
+  : sqliteTable('product_generated_images', {
+      id: text('id').primaryKey(),
+      productId: text('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+      url: text('url').notNull(),
+      thumbnailUrl: text('thumbnail_url'),
+      sortOrder: integer('sort_order').default(0),
+      reviewStatus: text('review_status').default('pending'),
+      createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+    });
+
+export type ProductGeneratedImage = typeof productGeneratedImages.$inferSelect;
+
+// Image feedback
+export const imageFeedbacks = isPg
+  ? pgTable('image_feedbacks', {
+      id: serial('id').primaryKey(),
+      productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+      imageId: integer('image_id').references(() => productGeneratedImages.id, { onDelete: 'cascade' }),
+      feedbackType: varchar('feedback_type', { length: 30 }).notNull(),
+      description: text('description'),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+    })
+  : sqliteTable('image_feedbacks', {
+      id: text('id').primaryKey(),
+      productId: text('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+      imageId: text('image_id').references(() => productGeneratedImages.id, { onDelete: 'cascade' }),
+      feedbackType: text('feedback_type').notNull(),
+      description: text('description'),
+      createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+    });
+
+// Style templates
+export const styleTemplates = isPg
+  ? pgTable('style_templates', {
+      id: varchar('id', { length: 50 }).primaryKey(),
+      name: varchar('name', { length: 100 }).notNull(),
+      description: text('description'),
+      thumbnailUrl: text('thumbnail_url'),
+      isActive: boolean('is_active').default(true),
+      sortOrder: integer('sort_order').default(0),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+    })
+  : sqliteTable('style_templates', {
+      id: text('id').primaryKey(),
+      name: text('name').notNull(),
+      description: text('description'),
+      thumbnailUrl: text('thumbnail_url'),
+      isActive: integer('is_active').default(1),
+      sortOrder: integer('sort_order').default(0),
+      createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+    });
+
+// Product style selections
+export const productStyleSelections = isPg
+  ? pgTable('product_style_selections', {
+      id: serial('id').primaryKey(),
+      productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+      styleId: varchar('style_id', { length: 50 }).notNull(),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+    })
+  : sqliteTable('product_style_selections', {
+      id: text('id').primaryKey(),
+      productId: text('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+      styleId: text('style_id').notNull(),
+      createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+    });
+
+// Delivery batches
+export const deliveryBatches = isPg
+  ? pgTable('delivery_batches', {
+      id: serial('id').primaryKey(),
+      productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+      deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+      deliveredCount: integer('delivered_count').default(0),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+    })
+  : sqliteTable('delivery_batches', {
+      id: text('id').primaryKey(),
+      productId: text('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+      deliveredAt: integer('delivered_at', { mode: 'timestamp' }),
+      deliveredCount: integer('delivered_count').default(0),
+      createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+    });
+
+// Delivery images
+export const deliveryImages = isPg
+  ? pgTable('delivery_images', {
+      id: serial('id').primaryKey(),
+      batchId: integer('batch_id').notNull().references(() => deliveryBatches.id, { onDelete: 'cascade' }),
+      imageId: integer('image_id').notNull().references(() => productGeneratedImages.id, { onDelete: 'cascade' }),
+      deliveredAt: timestamp('delivered_at', { withTimezone: true }).notNull().default(sql`now()`),
+    })
+  : sqliteTable('delivery_images', {
+      id: text('id').primaryKey(),
+      batchId: text('batch_id').notNull().references(() => deliveryBatches.id, { onDelete: 'cascade' }),
+      imageId: text('image_id').notNull().references(() => productGeneratedImages.id, { onDelete: 'cascade' }),
+      deliveredAt: integer('delivered_at', { mode: 'timestamp' }).notNull(),
+    });
+
+// AI generation tasks
+export const aiGenerationTasks = isPg
+  ? pgTable('ai_generation_tasks', {
+      id: serial('id').primaryKey(),
+      productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+      styleId: varchar('style_id', { length: 50 }),
+      status: varchar('status', { length: 30 }).default('pending'),
+      targetCount: integer('target_count').default(6),
+      completedCount: integer('completed_count').default(0),
+      taskId: varchar('task_id', { length: 100 }),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+      updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
+    })
+  : sqliteTable('ai_generation_tasks', {
+      id: text('id').primaryKey(),
+      productId: text('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+      styleId: text('style_id'),
+      status: text('status').default('pending'),
+      targetCount: integer('target_count').default(6),
+      completedCount: integer('completed_count').default(0),
+      taskId: text('task_id'),
+      createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+    });
+
 export type AIGenerationTask = typeof aiGenerationTasks.$inferSelect;
-export type NewAIGenerationTask = typeof aiGenerationTasks.$inferInsert;
+
+// Operation logs
+export const operationLogs = isPg
+  ? pgTable('operation_logs', {
+      id: serial('id').primaryKey(),
+      userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+      action: varchar('action', { length: 100 }).notNull(),
+      entityType: varchar('entity_type', { length: 50 }),
+      entityId: varchar('entity_id', { length: 100 }),
+      details: jsonb('details'),
+      ipAddress: varchar('ip_address', { length: 50 }),
+      createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+    })
+  : sqliteTable('operation_logs', {
+      id: text('id').primaryKey(),
+      userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+      action: text('action').notNull(),
+      entityType: text('entity_type'),
+      entityId: text('entity_id'),
+      details: text('details'),
+      ipAddress: text('ip_address'),
+      createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+    });

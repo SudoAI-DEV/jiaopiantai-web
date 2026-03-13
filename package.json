@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "drizzle-kit push && next build",
+    "build": "drizzle-kit push --force && next build",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
     "start": "next start",
@@ -25,6 +25,7 @@
     "framer-motion": "^12.36.0",
     "next": "16.1.6",
     "next-intl": "^4.8.3",
+    "pg": "^8.20.0",
     "postgres": "^3.4.8",
     "proxy-agent": "^5.0.0",
     "react": "19.2.3",
