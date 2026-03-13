@@ -24,55 +24,64 @@ export async function POST(request: NextRequest) {
 
     const key = generateFileKey(type, session.user.id, productId, file.name);
 
-    // R2 configuration
-    const r2Endpoint = process.env.R2_ENDPOINT || "https://88a96747babe00a5c70ab1954e53e136.r2.cloudflarestorage.com";
-    const r2AccessKeyId = process.env.R2_ACCESS_KEY_ID || "";
-    const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY || "";
-    const r2Bucket = process.env.R2_BUCKET_NAME || "jiaopiantai";
+    // Get R2 configuration
+    const r2Endpoint = process.env.R2_ENDPOINT;
+    const r2AccessKeyId = process.env.R2_ACCESS_KEY_ID;
+    const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+    const r2Bucket = process.env.R2_BUCKET_NAME;
 
-    // Generate AWS Signature Version 4
-    const date = new Date();
-    const amzDate = date.toISOString().replace(/[:-]|\.\d{3}/g, "");
-    const dateStamp = amzDate.substring(0, 8);
+    console.log("R2 config check:", {
+      endpoint: r2Endpoint ? "set" : "missing",
+      accessKey: r2AccessKeyId ? "set" : "missing",
+      secretKey: r2SecretAccessKey ? "set" : "missing",
+      bucket: r2Bucket ? "set" : "missing"
+    });
+
+    if (!r2Endpoint || !r2AccessKeyId || !r2SecretAccessKey || !r2Bucket) {
+      return NextResponse.json({ error: "R2 not configured" }, { status: 500 });
+    }
+
+    // AWS Signature V4
     const region = "auto";
     const service = "s3";
-    const expiresIn = 3600;
+    const now = new Date();
+    const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
+    const dateStamp = amzDate.substring(0, 8);
+    const expires = 3600;
 
-    // Create canonical request for presigned URL
     const credential = `${r2AccessKeyId}/${dateStamp}/${region}/${service}/aws4_request`;
-    const credentialEncoded = encodeURIComponent(credential);
     
     const canonicalQuerystring = [
       `X-Amz-Algorithm=AWS4-HMAC-SHA256`,
-      `X-Amz-Credential=${credentialEncoded}`,
+      `X-Amz-Credential=${encodeURIComponent(credential)}`,
       `X-Amz-Date=${amzDate}`,
-      `X-Amz-Expires=${expiresIn}`,
+      `X-Amz-Expires=${expires}`,
       `X-Amz-SignedHeaders=host`,
     ].sort().join("&");
 
-    const canonicalUri = `/${key}`;
-    const canonicalHeaders = `host:${new URL(r2Endpoint).host}\n`;
+    const host = new URL(r2Endpoint).host;
+    const canonicalHeaders = `host:${host}\n`;
     const signedHeaders = "host";
+    const payloadHash = "UNSIGNED-PAYLOAD";
 
     const canonicalRequest = [
       "PUT",
-      canonicalUri,
+      `/${key}`,
       canonicalQuerystring,
       canonicalHeaders,
       signedHeaders,
-      "UNSIGNED-PAYLOAD",
+      payloadHash,
     ].join("\n");
 
-    // String to sign
     const algorithm = "AWS4-HMAC-SHA256";
+    const canonicalRequestHash = crypto.createHash("sha256").update(canonicalRequest).digest("hex");
     const stringToSign = [
       algorithm,
       amzDate,
       `${dateStamp}/${region}/${service}/aws4_request`,
-      crypto.createHash("sha256").update(canonicalRequest).digest("hex"),
+      canonicalRequestHash,
     ].join("\n");
 
-    // Calculate signature
     const kSecret = Buffer.from(`AWS4${r2SecretAccessKey}`);
     const kDate = crypto.createHmac("sha256", kSecret).update(dateStamp).digest();
     const kRegion = crypto.createHmac("sha256", kDate).update(region).digest();
@@ -80,14 +89,12 @@ export async function POST(request: NextRequest) {
     const kSigning = crypto.createHmac("sha256", kService).update("aws4_request").digest();
     const signature = crypto.createHmac("sha256", kSigning).update(stringToSign).digest("hex");
 
-    // Build presigned URL
-    const presignedUrl = `${r2Endpoint}/${r2Bucket}/${key}?${canonicalQuerystring}&X-Amz-Signature=${signature}`;
+    const uploadUrl = `${r2Endpoint}/${r2Bucket}/${key}?${canonicalQuerystring}&X-Amz-Signature=${signature}`;
 
-    // Upload file using presigned URL
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const response = await fetch(presignedUrl, {
+    const response = await fetch(uploadUrl, {
       method: "PUT",
       headers: {
         "Content-Type": file.type,
@@ -98,7 +105,10 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("R2 upload failed:", response.status, errorText);
-      throw new Error(`Upload failed: ${response.status}`);
+      return NextResponse.json(
+        { error: `Upload failed: ${response.status}` },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
