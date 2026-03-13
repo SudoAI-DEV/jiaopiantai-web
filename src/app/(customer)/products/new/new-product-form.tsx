@@ -304,13 +304,13 @@ export function NewProductForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="space-y-2">
           {styleTemplates.map((style) => (
             <label
               key={style.id}
-              className={`relative rounded-lg border-2 cursor-pointer overflow-hidden transition-all ${
+              className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
                 formData.stylePreference === style.id
-                  ? "border-[#FDD335] ring-2 ring-[#FDD335]/30"
+                  ? "border-[#FDD335] bg-[#FDD335]/5"
                   : "border-gray-200 hover:border-gray-300"
               }`}
             >
@@ -322,14 +322,15 @@ export function NewProductForm({
                 onChange={handleChange}
                 className="sr-only"
               />
-              <div className="aspect-video bg-gray-100 flex items-center justify-center">
-                {style.thumbnailUrl ? (
-                  <img src={style.thumbnailUrl} alt={style.name} className="w-full h-full object-cover" />
-                ) : null}
-              </div>
-              <div className="p-1.5 bg-white">
-                <p className="font-medium text-xs text-[#4E342E] truncate">{style.name}</p>
-              </div>
+              {style.thumbnailUrl && (
+                <img src={style.thumbnailUrl} alt={style.name} className="w-12 h-12 object-cover rounded" />
+              )}
+              <span className={`font-medium text-sm ${formData.stylePreference === style.id ? "text-[#4E342E]" : "text-gray-700"}`}>
+                {style.name}
+              </span>
+              {formData.stylePreference === style.id && (
+                <span className="ml-auto text-[#FDD335]">✓</span>
+              )}
             </label>
           ))}
         </div>
