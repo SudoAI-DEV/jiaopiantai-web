@@ -1,1 +1,13 @@
-{"version":"7","dialect":"sqlite","entries":[]}
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1773384142858,
+      "tag": "0000_broad_wendell_rand",
+      "breakpoints": true
+    }
+  ]
+}
