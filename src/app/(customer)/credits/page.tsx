@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth-utils";
 import { db } from "@/lib/db";
-import { userProfiles, creditTransactions } from "@/lib/db/schema";
+import { userProfiles, creditTransactions, type CreditTransaction } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -117,7 +117,7 @@ export default async function CreditsPage() {
             <p className="text-center text-gray-500 py-8">暂无交易记录</p>
           ) : (
             <div className="divide-y">
-              {transactions.map((tx) => (
+              {(transactions as CreditTransaction[]).map((tx) => (
                 <div
                   key={tx.id}
                   className="flex items-center justify-between py-3"
