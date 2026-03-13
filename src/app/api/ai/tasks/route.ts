@@ -44,7 +44,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       id: task.id,
       productId: task.productId,
-      batchNumber: task.batchNumber,
       status: task.status,
       targetCount: task.targetCount,
       resultCount: task.resultCount,

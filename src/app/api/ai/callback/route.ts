@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
             productId: task.productId,
             url: result.url,
             thumbnailUrl: result.thumbnailUrl || result.url,
-            batchNumber: task.batchNumber,
+            
             reviewStatus: "pending",
             sortOrder: i,
             createdAt: now,
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
           await tx
             .update(userProfiles)
             .set({
-              creditsFrozen: user.creditsFrozen - 1,
+              creditsFrozen: (user.creditsFrozen || 0) - 1,
             })
             .where(eq(userProfiles.id, user.id));
 
@@ -127,8 +127,8 @@ export async function POST(request: NextRequest) {
             userId: user.id,
             type: "refund",
             amount: 1,
-            balanceAfter: user.creditsBalance + 1,
-            productId: task.productId,
+            balanceAfter: (user.creditsBalance || 0) + 1,
+            referenceId: task.productId,
             description: `AI 生成失败退款: ${product.name}`,
             createdAt: now,
           });

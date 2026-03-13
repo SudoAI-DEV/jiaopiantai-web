@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     //     stylePreference: product.stylePreference,
     //     specialNotes: product.specialNotes,
     //     sourceImages: sourceImages.map(img => img.url),
-    //     targetCount: task.targetCount,
+    //     targetCount: task.targetCount || 6 || 6,
     //   }),
     // });
 
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     setTimeout(async () => {
       try {
         const mockResults: { url: string; thumbnailUrl: string }[] = [];
-        const imageCount = Math.min(task.targetCount, 20);
+        const imageCount = Math.min(task.targetCount || 6 || 6, 20);
 
         for (let i = 0; i < imageCount; i++) {
           // Generate mock URLs - in production these would be real AI-generated images

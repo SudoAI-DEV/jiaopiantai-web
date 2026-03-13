@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
     // Create user profile with default customer role
     await db.insert(userProfiles).values({
       id: user.user.id,
+      userId: user.user.id,
       role: "customer",
       shopName: shopName || null,
       phone: phone || null,
@@ -35,6 +36,8 @@ export async function POST(request: NextRequest) {
       creditsBalance: 0,
       creditsFrozen: 0,
       creditsTotalSpent: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
     return NextResponse.json({ user: user.user });

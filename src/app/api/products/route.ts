@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     const conditions = [eq(products.userId, session.user.id)];
     if (status) {
-      conditions.push(eq(products.status, status as ProductStatus));
+      conditions.push(eq(products.status, status as ProductStatus || "draft"));
     }
 
     const offset = (page - 1) * limit;

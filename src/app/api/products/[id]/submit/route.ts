@@ -41,7 +41,7 @@ export async function POST(
       where: eq(userProfiles.id, session.user.id),
     });
 
-    if (!profile || profile.creditsBalance < 1) {
+    if (!profile || (profile.creditsBalance || 0) < 1) {
       return NextResponse.json(
         { error: "Insufficient credits" },
         { status: 400 }
@@ -66,8 +66,8 @@ export async function POST(
       await tx
         .update(userProfiles)
         .set({
-          creditsBalance: profile.creditsBalance - 1,
-          creditsFrozen: profile.creditsFrozen + 1,
+          creditsBalance: (profile.creditsBalance || 0) - 1,
+          creditsFrozen: (profile.creditsFrozen || 0) + 1,
         })
         .where(eq(userProfiles.id, session.user.id));
 
@@ -77,8 +77,8 @@ export async function POST(
         userId: session.user.id,
         type: "submission",
         amount: -1,
-        balanceAfter: profile.creditsBalance - 1,
-        productId: id,
+        balanceAfter: (profile.creditsBalance || 0) - 1,
+        referenceId: id,
         description: `提交产品: ${product.name}`,
         createdAt: new Date(),
       });
@@ -88,10 +88,10 @@ export async function POST(
       await tx.insert(aiGenerationTasks).values({
         id: taskId,
         productId: id,
-        batchNumber: 1,
         status: "pending",
         targetCount: 20,
         createdAt: new Date(),
+        updatedAt: new Date(),
       });
 
       // Update product status
