@@ -26,7 +26,7 @@ export function middleware(request: NextRequest) {
 
   // For now, check for a simple auth token in cookies
   // In production, this would validate the Better Auth session
-  const sessionToken = request.cookies.get("better-auth.session_token");
+  const sessionToken = request.cookies.get("__Secure-better-auth.session_token") || request.cookies.get("better-auth.session_token");
 
   // If no session and trying to access protected route, redirect to login
   if (!sessionToken) {
