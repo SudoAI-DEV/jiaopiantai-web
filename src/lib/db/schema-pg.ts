@@ -1,8 +1,8 @@
-import { pgTable, text, integer, boolean, timestamp, serial, varchar, jsonb, primaryKey, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, boolean, timestamp, varchar, jsonb, primaryKey } from 'drizzle-orm/pg-core';
 
 // Users table - Better Auth compatible
 export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
+  id: varchar('id', { length: 50 }).primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   emailVerified: boolean('email_verified').default(false),
@@ -13,22 +13,22 @@ export const users = pgTable('users', {
 
 // Sessions table
 export const sessions = pgTable('sessions', {
-  id: serial('id').primaryKey(),
+  id: varchar('id', { length: 50 }).primaryKey(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   token: varchar('token', { length: 255 }).notNull().unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
   ipAddress: varchar('ip_address', { length: 50 }),
   userAgent: text('user_agent'),
-  userId: integer('user_id').notNull(),
+  userId: varchar('user_id', { length: 50 }).notNull(),
 });
 
 // Accounts table
 export const accounts = pgTable('accounts', {
-  id: serial('id').primaryKey(),
+  id: varchar('id', { length: 50 }).primaryKey(),
   accountId: varchar('account_id', { length: 255 }).notNull(),
   providerId: varchar('provider_id', { length: 255 }).notNull(),
-  userId: integer('user_id').notNull(),
+  userId: varchar('user_id', { length: 50 }).notNull(),
   accessToken: text('access_token'),
   refreshToken: text('refresh_token'),
   idToken: text('id_token'),
@@ -42,7 +42,7 @@ export const accounts = pgTable('accounts', {
 
 // Verifications table
 export const verifications = pgTable('verifications', {
-  id: serial('id').primaryKey(),
+  id: varchar('id', { length: 50 }).primaryKey(),
   identifier: varchar('identifier', { length: 255 }).notNull(),
   value: text('value').notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
@@ -51,13 +51,15 @@ export const verifications = pgTable('verifications', {
 
 // User profiles table
 export const userProfiles = pgTable('user_profiles', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull().unique(),
+  id: varchar('id', { length: 50 }).primaryKey(),
+  userId: varchar('user_id', { length: 50 }).notNull().unique(),
   role: varchar('role', { length: 20 }).default('customer'),
   shopName: varchar('shop_name', { length: 255 }),
   phone: varchar('phone', { length: 20 }),
   creditsBalance: integer('credits_balance').default(0),
   creditsFrozen: integer('credits_frozen').default(0),
+  creditsTotalSpent: integer().default(0),
+  category: varchar("category", { length: 50 })('credits_total_spent').default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
 });
@@ -67,8 +69,8 @@ export type NewUserProfile = typeof userProfiles.$inferInsert;
 
 // Credit transactions table
 export const creditTransactions = pgTable('credit_transactions', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull(),
+  id: varchar('id', { length: 50 }).primaryKey(),
+  userId: varchar('user_id', { length: 50 }).notNull(),
   type: varchar('type', { length: 20 }).notNull(),
   amount: integer('amount').notNull(),
   balanceAfter: integer('balance_after').notNull(),
@@ -81,8 +83,8 @@ export type CreditTransaction = typeof creditTransactions.$inferSelect;
 
 // Products table
 export const products = pgTable('products', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull(),
+  id: varchar('id', { length: 50 }).primaryKey(),
+  userId: varchar('user_id', { length: 50 }).notNull(),
   productNumber: varchar('product_number', { length: 50 }).notNull(),
   name: varchar('name', { length: 255 }).notNull(),
   category: varchar('category', { length: 50 }).notNull(),
@@ -102,9 +104,12 @@ export type ProductStatus = Product['status'];
 
 // Product source images
 export const productSourceImages = pgTable('product_source_images', {
-  id: serial('id').primaryKey(),
-  productId: integer('product_id').notNull(),
+  id: varchar('id', { length: 50 }).primaryKey(),
+  productId: varchar('product_id', { length: 50 }).notNull(),
   url: text('url').notNull(),
+  fileName: varchar('file_name', { length: 255 }),
+  fileSize: integer('file_size'),
+  mimeType: varchar('mime_type', { length: 100 }),
   sortOrder: integer('sort_order').default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
@@ -113,10 +118,12 @@ export type ProductSourceImage = typeof productSourceImages.$inferSelect;
 
 // Product generated images
 export const productGeneratedImages = pgTable('product_generated_images', {
-  id: serial('id').primaryKey(),
-  productId: integer('product_id').notNull(),
+  id: varchar('id', { length: 50 }).primaryKey(),
+  productId: varchar('product_id', { length: 50 }).notNull(),
   url: text('url').notNull(),
   thumbnailUrl: text('thumbnail_url'),
+  fileName: varchar('file_name', { length: 255 }),
+  fileSize: integer('file_size'),
   sortOrder: integer('sort_order').default(0),
   reviewStatus: varchar('review_status', { length: 20 }).default('pending'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
@@ -126,9 +133,9 @@ export type ProductGeneratedImage = typeof productGeneratedImages.$inferSelect;
 
 // Image feedback
 export const imageFeedbacks = pgTable('image_feedbacks', {
-  id: serial('id').primaryKey(),
-  productId: integer('product_id').notNull(),
-  imageId: integer('image_id'),
+  id: varchar('id', { length: 50 }).primaryKey(),
+  productId: varchar('product_id', { length: 50 }).notNull(),
+  imageId: varchar('image_id', { length: 50 }),
   feedbackType: varchar('feedback_type', { length: 30 }).notNull(),
   description: text('description'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
@@ -149,16 +156,16 @@ export type StyleTemplate = typeof styleTemplates.$inferSelect;
 
 // Product style selections
 export const productStyleSelections = pgTable('product_style_selections', {
-  id: serial('id').primaryKey(),
-  productId: integer('product_id').notNull(),
+  id: varchar('id', { length: 50 }).primaryKey(),
+  productId: varchar('product_id', { length: 50 }).notNull(),
   styleId: varchar('style_id', { length: 50 }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
 
 // Delivery batches
 export const deliveryBatches = pgTable('delivery_batches', {
-  id: serial('id').primaryKey(),
-  productId: integer('product_id').notNull(),
+  id: varchar('id', { length: 50 }).primaryKey(),
+  productId: varchar('product_id', { length: 50 }).notNull(),
   deliveredAt: timestamp('delivered_at', { withTimezone: true }),
   deliveredCount: integer('delivered_count').default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
@@ -166,16 +173,16 @@ export const deliveryBatches = pgTable('delivery_batches', {
 
 // Delivery images
 export const deliveryImages = pgTable('delivery_images', {
-  id: serial('id').primaryKey(),
-  batchId: integer('batch_id').notNull(),
-  imageId: integer('image_id').notNull(),
+  id: varchar('id', { length: 50 }).primaryKey(),
+  batchId: varchar('batch_id', { length: 50 }).notNull(),
+  imageId: varchar('image_id', { length: 50 }).notNull(),
   deliveredAt: timestamp('delivered_at', { withTimezone: true }).notNull(),
 });
 
 // AI generation tasks
 export const aiGenerationTasks = pgTable('ai_generation_tasks', {
-  id: serial('id').primaryKey(),
-  productId: integer('product_id').notNull(),
+  id: varchar('id', { length: 50 }).primaryKey(),
+  productId: varchar('product_id', { length: 50 }).notNull(),
   styleId: varchar('style_id', { length: 50 }),
   status: varchar('status', { length: 30 }).default('pending'),
   targetCount: integer('target_count').default(6),
@@ -189,8 +196,8 @@ export type AIGenerationTask = typeof aiGenerationTasks.$inferSelect;
 
 // Operation logs
 export const operationLogs = pgTable('operation_logs', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id'),
+  id: varchar('id', { length: 50 }).primaryKey(),
+  userId: varchar('user_id', { length: 50 }),
   action: varchar('action', { length: 100 }).notNull(),
   entityType: varchar('entity_type', { length: 50 }),
   entityId: varchar('entity_id', { length: 100 }),

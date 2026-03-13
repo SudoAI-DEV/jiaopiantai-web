@@ -74,7 +74,7 @@ export default async function ProductDetailPage({
   return (
     <div className="space-y-6">
       {/* Task Status Poller - only active during async processing */}
-      {pollingStatuses.includes(product.status) && (
+      {pollingStatuses.includes(product.status || "draft") && (
         <TaskStatusPoller productId={product.id} statuses={pollingStatuses} />
       )}
 
@@ -97,7 +97,7 @@ export default async function ProductDetailPage({
           </div>
           <p className="text-gray-600 mt-1">
             {categoryLabels[product.category] || product.category} ·{" "}
-            {statusLabels[product.status] || product.status}
+            {statusLabels[product.status || "draft"] || product.status}
           </p>
         </div>
 
@@ -168,7 +168,7 @@ export default async function ProductDetailPage({
               >
                 <OptimizedImage
                   src={img.url}
-                  alt={img.fileName}
+                  alt={img.fileName || ""}
                   fill
                   aspectRatio="auto"
                 />

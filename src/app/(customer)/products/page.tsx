@@ -71,7 +71,7 @@ export default async function ProductsPage({
 
   const conditions = [eq(products.userId, session.user.id)];
   if (status) {
-    conditions.push(eq(products.status, status as ProductStatus));
+    conditions.push(eq(products.status, status as ProductStatus || "draft"));
   }
 
   const [productsList, totalCount] = await Promise.all([
@@ -182,10 +182,10 @@ export default async function ProductsPage({
                         </h3>
                         <span
                           className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            statusColors[product.status] || "bg-gray-100"
+                            statusColors[product.status || "draft"] || "bg-gray-100"
                           }`}
                         >
-                          {statusLabels[product.status] || product.status}
+                          {statusLabels[product.status || "draft"] || product.status}
                         </span>
                       </div>
                       <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">

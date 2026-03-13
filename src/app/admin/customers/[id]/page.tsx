@@ -15,7 +15,7 @@ async function getCustomerDetail(customerId: string) {
       phone: userProfiles.phone,
       category: userProfiles.category,
       role: userProfiles.role,
-      creditsBalance: userProfiles.creditsBalance,
+      creditsBalance: userProfiles.creditsBalance || 0,
       creditsFrozen: userProfiles.creditsFrozen,
       creditsTotalSpent: userProfiles.creditsTotalSpent,
       email: users.email,
@@ -159,7 +159,7 @@ export default async function CustomerDetailPage({
           <CardContent className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-gray-500">可用点数</span>
-              <span className="text-2xl font-bold text-[#4E342E]">{customer.creditsBalance}</span>
+              <span className="text-2xl font-bold text-[#4E342E]">{customer.creditsBalance || 0}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">冻结中</span>
@@ -180,7 +180,7 @@ export default async function CustomerDetailPage({
           <CardContent>
             <RechargeForm
               customerId={customer.id}
-              currentBalance={customer.creditsBalance}
+              currentBalance={customer.creditsBalance || 0}
             />
           </CardContent>
         </Card>
@@ -218,8 +218,8 @@ export default async function CustomerDetailPage({
                       <td className="px-4 py-3 text-sm text-[#4E342E]">{product.productNumber}</td>
                       <td className="px-4 py-3 text-sm text-[#4E342E]">{product.name}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[product.status] || "bg-gray-100"}`}>
-                          {statusLabels[product.status] || product.status}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[product.status || "draft"] || "bg-gray-100"}`}>
+                          {statusLabels[product.status || "draft"] || product.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">

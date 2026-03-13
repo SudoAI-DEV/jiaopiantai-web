@@ -28,7 +28,7 @@ async function getAdminDashboardData() {
 
   const productStats: Record<string, number> = {};
   productStatsRaw.forEach((stat) => {
-    productStats[stat.status] = Number(stat.count);
+    productStats[stat.status || "draft"] = Number(stat.count);
   });
 
   // Get pending review count
@@ -282,10 +282,10 @@ export default async function AdminDashboardPage() {
                     </div>
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        statusColors[product.status] || "bg-gray-100"
+                        statusColors[product.status || "draft"] || "bg-gray-100"
                       }`}
                     >
-                      {statusLabels[product.status] || product.status}
+                      {statusLabels[product.status || "draft"] || product.status}
                     </span>
                   </Link>
                 ))}

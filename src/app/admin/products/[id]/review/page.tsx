@@ -115,8 +115,8 @@ export default async function ProductReviewPage({
           </div>
           <p className="text-gray-600 mt-1">
             {user?.shopName || "未知客户"} · {categoryLabels[product.category] || product.category} ·{" "}
-            <span className={statusColors[product.status]}>
-              {statusLabels[product.status] || product.status}
+            <span className={statusColors[product.status || "draft"]}>
+              {statusLabels[product.status || "draft"] || product.status}
             </span>
           </p>
         </div>
@@ -169,7 +169,7 @@ export default async function ProductReviewPage({
               >
                 <Image
                   src={img.url}
-                  alt={img.fileName}
+                  alt={img.fileName || ""}
                   fill
                   className="object-cover"
                 />

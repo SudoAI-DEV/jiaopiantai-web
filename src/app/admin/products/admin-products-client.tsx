@@ -221,10 +221,10 @@ export function AdminProductsClient({ initialProducts }: AdminProductsClientProp
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          statusColors[product.status] || "bg-gray-100"
+                          statusColors[product.status || "draft"] || "bg-gray-100"
                         }`}
                       >
-                        {statusLabels[product.status] || product.status}
+                        {statusLabels[product.status || "draft"] || product.status}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">

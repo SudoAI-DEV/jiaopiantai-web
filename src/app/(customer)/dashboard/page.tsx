@@ -26,8 +26,8 @@ async function getDashboardData() {
     .groupBy(products.status);
 
   const productStats: Record<string, number> = {};
-  productStatsRaw.forEach((stat: { status: string; count: number }) => {
-    productStats[stat.status] = Number(stat.count);
+  productStatsRaw.forEach((stat: { status: string | null; count: number }) => {
+    if (stat.status) productStats[stat.status || "draft"] = Number(stat.count);
   });
 
   // Get recent products
@@ -216,10 +216,10 @@ export default async function DashboardPage() {
                     </div>
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        statusColors[product.status] || "bg-gray-100"
+                        statusColors[product.status || "draft"] || "bg-gray-100"
                       }`}
                     >
-                      {statusLabels[product.status] || product.status}
+                      {statusLabels[product.status || "draft"] || product.status}
                     </span>
                   </Link>
                 ))}
