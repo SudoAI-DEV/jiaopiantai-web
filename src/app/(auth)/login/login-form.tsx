@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+// Known admin phone numbers
+const ADMIN_PHONES = ['17682345614'];
+
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -28,6 +31,7 @@ export function LoginForm() {
       const res = await fetch("/api/auth/sign-in/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
@@ -38,17 +42,15 @@ export function LoginForm() {
         return;
       }
 
-      // Get user profile to check role
-      const profileRes = await fetch("/api/dashboard");
-      const profileData = await profileRes.json();
-      
-      // Redirect based on role
-      const isAdmin = profileData?.user?.role === 'admin';
-      const targetUrl = isAdmin ? '/admin' : redirect;
-      
-      router.push(targetUrl);
+      // Check if admin - redirect to admin page
+      if (ADMIN_PHONES.includes(phone)) {
+        router.push("/admin");
+      } else {
+        router.push(redirect);
+      }
       router.refresh();
     } catch (err) {
+      console.error("Login error:", err);
       setError("登录时发生错误");
     } finally {
       setLoading(false);
