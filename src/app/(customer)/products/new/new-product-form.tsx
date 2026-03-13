@@ -187,7 +187,7 @@ export function NewProductForm({
       <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
         <h2 className="text-base font-semibold text-[#4E342E]">产品信息</h2>
         
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <Label htmlFor="name" className="text-sm">产品名称 *</Label>
             <Input
@@ -253,7 +253,7 @@ export function NewProductForm({
           <span className="text-xs text-gray-500">至少1张</span>
         </div>
 
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {sourceImages.map((img) => (
             <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
               <img
@@ -304,7 +304,7 @@ export function NewProductForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {styleTemplates.map((style) => (
             <label
               key={style.id}
