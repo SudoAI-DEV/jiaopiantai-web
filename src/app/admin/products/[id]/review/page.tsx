@@ -125,7 +125,7 @@ export default async function ProductReviewPage({
         {canDeliver && product.status === "reviewing" && (
           <ReviewActions
             productId={product.id}
-            productStatus={product.status}
+            productStatus={product.status || "draft"}
             approvedCount={approvedImages.length}
             deliveryCount={product.deliveryCount || 0}
           />
@@ -182,8 +182,8 @@ export default async function ProductReviewPage({
       {/* Generated Images - Client Component */}
       <ReviewClient
         productId={product.id}
-        generatedImages={generatedImages}
-        productStatus={product.status}
+        generatedImages={generatedImages as any}
+        productStatus={product.status || "draft"}
         deliveryCount={product.deliveryCount || 0}
         approvedCount={approvedImages.length}
       />
