@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getS3Client, generateFileKey, getPublicUrl } from "@/lib/oss";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { generateFileKey } from "@/lib/oss";
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
     const session = await auth.api.getSession({
       headers: request.headers,
     });
@@ -25,30 +22,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique key for the file
-    const key = generateFileKey(
-      type,
-      session.user.id,
-      productId || "temp",
-      fileName
-    );
+    const key = generateFileKey(type, session.user.id, productId || "temp", fileName);
 
-    const s3Client = getS3Client();
-    const bucket = process.env.R2_BUCKET_NAME || "jiaopiantai";
-
-    // Generate signed URL
-    const command = new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      ContentType: fileType,
-    });
-
-    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    // Generate presigned URL using our internal function
+    const { generateUploadUrl } = await import("@/lib/oss");
+    const { uploadUrl } = await generateUploadUrl(key);
 
     return NextResponse.json({
-      uploadUrl: signedUrl,
+      uploadUrl,
       key,
-      publicUrl: getPublicUrl(key),
+      publicUrl: `/api/files/${key}`,
     });
   } catch (error) {
     console.error("Generate presigned URL error:", error);

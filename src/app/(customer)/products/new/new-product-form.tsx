@@ -69,27 +69,37 @@ export function NewProductForm({
       try {
         const imageData = await Promise.all(
           files.map(async (file) => {
-            // Use server-side upload
-            const formData = new FormData();
-            formData.append("file", file);
-            formData.append("type", "source");
-
-            const res = await fetch("/api/upload/server", {
+            // Step 1: Get presigned URL
+            const res = await fetch("/api/upload/presigned-url", {
               method: "POST",
-              body: formData,
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                fileName: file.name,
+                fileType: file.type,
+                type: "source",
+              }),
             });
 
-            if (!res.ok) {
-              const errorText = await res.text();
-              console.error("Upload failed:", res.status, errorText);
-              throw new Error(`Upload failed: ${res.status}`);
-            }
+            if (!res.ok) throw new Error("Failed to get upload URL");
 
-            const data = await res.json();
+            const { uploadUrl, publicUrl } = await res.json();
+
+            // Step 2: Upload directly to R2 (browser -> R2)
+            const uploadRes = await fetch(uploadUrl, {
+              method: "PUT",
+              body: file,
+              headers: { "Content-Type": file.type },
+            });
+
+            if (!uploadRes.ok) {
+              const errorText = await uploadRes.text();
+              console.error("R2 upload failed:", uploadRes.status, errorText);
+              throw new Error(`Upload failed: ${uploadRes.status}`);
+            }
 
             return {
               id: crypto.randomUUID(),
-              url: data.publicUrl,
+              url: publicUrl,
               file,
             };
           })
