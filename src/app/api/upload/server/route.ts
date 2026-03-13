@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { generateFileKey } from "@/lib/oss";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     const key = generateFileKey(type, session.user.id, productId, file.name);
 
-    // Create S3 client for R2
+    // Use S3 client directly
     const s3Client = new S3Client({
       region: "auto",
       endpoint: process.env.R2_ENDPOINT,
@@ -33,38 +32,19 @@ export async function POST(request: NextRequest) {
         accessKeyId: process.env.R2_ACCESS_KEY_ID!,
         secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
       },
-      forcePathStyle: true,  // Important for R2
     });
 
-    // Generate presigned URL
-    const command = new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
-      Key: key,
-      ContentType: file.type,
-    });
-
-    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-
-    // Upload using the presigned URL with fetch
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const response = await fetch(presignedUrl, {
-      method: "PUT",
-      headers: {
-        "Content-Type": file.type,
-      },
-      body: buffer,
+    const command = new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: key,
+      Body: buffer,
+      ContentType: file.type,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("R2 upload failed:", response.status, errorText);
-      return NextResponse.json(
-        { error: `Upload failed: ${response.status}`, details: errorText },
-        { status: 500 }
-      );
-    }
+    await s3Client.send(command);
 
     return NextResponse.json({
       key,
