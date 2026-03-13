@@ -43,7 +43,7 @@ export default async function NewProductPage() {
   ]);
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto overflow-x-hidden">
       <div className="mb-6">
         <Link
           href="/products"
