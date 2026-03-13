@@ -94,7 +94,7 @@ export default async function ProductReviewPage({
   const { product, user, sourceImages, generatedImages } = data;
 
   const approvedImages = generatedImages.filter((img) => img.reviewStatus === "approved");
-  const canDeliver = approvedImages.length >= product.deliveryCount;
+  const canDeliver = approvedImages.length >= (product.deliveryCount || 0);
 
   return (
     <div className="space-y-6">
@@ -127,7 +127,7 @@ export default async function ProductReviewPage({
             productId={product.id}
             productStatus={product.status}
             approvedCount={approvedImages.length}
-            deliveryCount={product.deliveryCount}
+            deliveryCount={product.deliveryCount || 0}
           />
         )}
       </div>
@@ -149,7 +149,7 @@ export default async function ProductReviewPage({
           <div>
             <span className="text-gray-500">期望交付</span>
             <p className="text-[#4E342E]">
-              {product.deliveryCount} 张 (当前通过: {approvedImages.length})
+              {product.deliveryCount || 0} 张 (当前通过: {approvedImages.length})
             </p>
           </div>
         </div>
@@ -184,7 +184,7 @@ export default async function ProductReviewPage({
         productId={product.id}
         generatedImages={generatedImages}
         productStatus={product.status}
-        deliveryCount={product.deliveryCount}
+        deliveryCount={product.deliveryCount || 0}
         approvedCount={approvedImages.length}
       />
     </div>
