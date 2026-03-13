@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "drizzle-kit push --force && next build",
+    "build": "next build",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
     "start": "next start",
@@ -55,6 +55,5 @@
     "tailwindcss": "^4",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5"
-  },
-  "build": "next build"
+  }
 }
