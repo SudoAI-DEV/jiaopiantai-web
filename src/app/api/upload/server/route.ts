@@ -38,20 +38,17 @@ export async function POST(request: NextRequest) {
     const dateStamp = amzDate.substring(0, 8);
     const expires = 3600;
 
-    // Credential
+    // Credential (NOT URL encoded)
     const credential = `${r2AccessKeyId}/${dateStamp}/${region}/${service}/aws4_request`;
 
-    // Query string parameters (must be sorted)
-    const params = {
-      "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
-      "X-Amz-Credential": credential,
-      "X-Amz-Date": amzDate,
-      "X-Amz-Expires": expires.toString(),
-      "X-Amz-SignedHeaders": "host",
-    };
-
-    // Sort and encode query string
-    const sortedParams = Object.keys(params).sort().map(k => `${k}=${encodeURIComponent(params[k as keyof typeof params])}`).join("&");
+    // Query string parameters (must be sorted and only specific ones URL encoded)
+    const params = [
+      `X-Amz-Algorithm=AWS4-HMAC-SHA256`,
+      `X-Amz-Credential=${credential}`,
+      `X-Amz-Date=${amzDate}`,
+      `X-Amz-Expires=${expires}`,
+      `X-Amz-SignedHeaders=host`,
+    ].sort().join("&");
 
     // Canonical request
     const host = new URL(r2Endpoint).host;
@@ -59,7 +56,7 @@ export async function POST(request: NextRequest) {
     const canonicalRequest = [
       "PUT",
       canonicalUri,
-      sortedParams,
+      params,
       `host:${host}`,
       "host",
       "UNSIGNED-PAYLOAD"
@@ -83,7 +80,7 @@ export async function POST(request: NextRequest) {
     const signature = crypto.createHmac("sha256", kSigning).update(stringToSign).digest("hex");
 
     // Build presigned URL
-    const presignedUrl = `${r2Endpoint}/${r2Bucket}/${key}?${sortedParams}&X-Amz-Signature=${signature}`;
+    const presignedUrl = `${r2Endpoint}/${r2Bucket}/${key}?${params}&X-Amz-Signature=${signature}`;
 
     // Upload file
     const arrayBuffer = await file.arrayBuffer();
