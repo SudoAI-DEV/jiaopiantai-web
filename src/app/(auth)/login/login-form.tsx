@@ -11,7 +11,7 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/dashboard";
 
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,10 +22,10 @@ export function LoginForm() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/sign-in/email", {
+      const res = await fetch("/api/auth/sign-in/phone", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ phoneNumber: phone, password }),
       });
 
       const data = await res.json();
@@ -53,13 +53,13 @@ export function LoginForm() {
       )}
 
       <div>
-        <Label htmlFor="email">邮箱</Label>
+        <Label htmlFor="phone">手机号</Label>
         <Input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="your@email.com"
+          id="phone"
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="请输入手机号"
           required
           className="mt-1"
         />

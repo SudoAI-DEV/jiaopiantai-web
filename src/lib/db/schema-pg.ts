@@ -4,8 +4,10 @@ import { pgTable, text, integer, boolean, timestamp, varchar, jsonb, primaryKey 
 export const users = pgTable('users', {
   id: varchar('id', { length: 50 }).primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
-  email: varchar('email', { length: 255 }).notNull().unique(),
+  email: varchar('email', { length: 255 }).unique(),
   emailVerified: boolean('email_verified').default(false),
+  phone: varchar('phone', { length: 20 }).unique(),
+  phoneVerified: boolean('phone_verified').default(false),
   image: varchar('image', { length: 500 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),

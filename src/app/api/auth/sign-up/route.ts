@@ -1,26 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { userProfiles } from "@/lib/db/schema";
+import { userProfiles, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, name, shopName, phone, category } = body;
+    const { email, phoneNumber, password, name, shopName, phone, category } = body;
 
-    // Create user with Better Auth
-    const user = await auth.api.signUpEmail({
-      body: {
-        email,
-        password,
-        name: name || email.split("@")[0],
-      },
-    });
+    let user;
+
+    if (phoneNumber) {
+      // Phone number sign up
+      // First check if user exists
+      const existingUser = await db.query.users.findFirst({
+        where: eq(users.phone, phoneNumber),
+      });
+
+      if (existingUser) {
+        return NextResponse.json(
+          { error: "该手机号已注册" },
+          { status: 400 }
+        );
+      }
+
+      // Create user with Better Auth phone sign up
+      user = await auth.api.signUpPhone({
+        body: {
+          phoneNumber,
+          password,
+          name: name || phoneNumber,
+        },
+      });
+    } else if (email) {
+      // Email sign up (fallback)
+      user = await auth.api.signUpEmail({
+        body: {
+          email,
+          password,
+          name: name || email.split("@")[0],
+        },
+      });
+    } else {
+      return NextResponse.json(
+        { error: "请提供手机号或邮箱" },
+        { status: 400 }
+      );
+    }
 
     if (!user) {
       return NextResponse.json(
-        { error: "Failed to create user" },
+        { error: "注册失败" },
         { status: 400 }
       );
     }
@@ -31,7 +62,7 @@ export async function POST(request: NextRequest) {
       userId: user.user.id,
       role: "customer",
       shopName: shopName || null,
-      phone: phone || null,
+      phone: phoneNumber || phone || null,
       category: category || null,
       creditsBalance: 0,
       creditsFrozen: 0,
@@ -44,7 +75,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Sign up error:", error);
     return NextResponse.json(
-      { error: "Failed to sign up" },
+      { error: "注册失败" },
       { status: 500 }
     );
   }

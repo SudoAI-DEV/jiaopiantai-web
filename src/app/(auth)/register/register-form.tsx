@@ -22,12 +22,11 @@ export function RegisterForm() {
   const router = useRouter();
 
   const [formData, setFormData] = useState({
-    email: "",
+    phone: "",
     password: "",
     confirmPassword: "",
     name: "",
     shopName: "",
-    phone: "",
     category: "",
   });
   const [error, setError] = useState("");
@@ -54,18 +53,22 @@ export function RegisterForm() {
       return;
     }
 
+    if (!formData.phone || formData.phone.length < 8) {
+      setError("请输入有效的手机号");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/sign-up", {
+      const res = await fetch("/api/auth/sign-up/phone", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: formData.email,
+          phoneNumber: formData.phone,
           password: formData.password,
           name: formData.name,
           shopName: formData.shopName,
-          phone: formData.phone,
           category: formData.category,
         }),
       });
@@ -78,11 +81,11 @@ export function RegisterForm() {
       }
 
       // Auto login after registration
-      const loginRes = await fetch("/api/auth/sign-in/email", {
+      const loginRes = await fetch("/api/auth/sign-in/phone", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: formData.email,
+          phoneNumber: formData.phone,
           password: formData.password,
         }),
       });
@@ -109,14 +112,14 @@ export function RegisterForm() {
       )}
 
       <div>
-        <Label htmlFor="email">邮箱 *</Label>
+        <Label htmlFor="phone">手机号 *</Label>
         <Input
-          id="email"
-          name="email"
-          type="email"
-          value={formData.email}
+          id="phone"
+          name="phone"
+          type="tel"
+          value={formData.phone}
           onChange={handleChange}
-          placeholder="your@email.com"
+          placeholder="请输入手机号"
           required
           className="mt-1"
         />
@@ -171,19 +174,6 @@ export function RegisterForm() {
           value={formData.shopName}
           onChange={handleChange}
           placeholder="请输入店铺名称"
-          className="mt-1"
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="phone">联系电话</Label>
-        <Input
-          id="phone"
-          name="phone"
-          type="tel"
-          value={formData.phone}
-          onChange={handleChange}
-          placeholder="请输入联系电话"
           className="mt-1"
         />
       </div>

@@ -5,7 +5,7 @@ import * as schema from "@/lib/db/schema";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
-    provider: "sqlite",
+    provider: "pg",
     schema: {
       user: schema.users,
       session: schema.sessions,
@@ -17,6 +17,10 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false,
   },
+  phoneNumber: {
+    enabled: true,
+    sendVerificationOTP: false, // For now, just allow without verification
+  },
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // 1 day
@@ -26,7 +30,8 @@ export const auth = betterAuth({
     "http://localhost:3001",
     "http://localhost:3002",
     "http://localhost:3003",
-    "https://tambra-unsolaced-wendi.ngrok-free.dev",
+    "https://jiaopiantai.com",
+    "https://jiaopiantai.vercel.app",
   ],
 });
 
