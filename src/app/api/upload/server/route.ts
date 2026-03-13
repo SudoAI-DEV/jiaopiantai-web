@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY!;
     const r2Bucket = process.env.R2_BUCKET_NAME!;
 
-    // Generate presigned URL using AWS Signature V4 with query string
+    // Generate presigned URL using AWS Signature V4
     const service = "s3";
     const region = "auto";
     const now = new Date();
@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
     // Credential (NOT URL encoded)
     const credential = `${r2AccessKeyId}/${dateStamp}/${region}/${service}/aws4_request`;
 
-    // Query string parameters (must be sorted and only specific ones URL encoded)
-    const params = [
+    // Build query string for canonical request (raw, not encoded)
+    const queryParams = [
       `X-Amz-Algorithm=AWS4-HMAC-SHA256`,
       `X-Amz-Credential=${credential}`,
       `X-Amz-Date=${amzDate}`,
@@ -50,13 +50,13 @@ export async function POST(request: NextRequest) {
       `X-Amz-SignedHeaders=host`,
     ].sort().join("&");
 
-    // Canonical request
+    // Canonical request (use raw query string)
     const host = new URL(r2Endpoint).host;
     const canonicalUri = `/${r2Bucket}/${key}`;
     const canonicalRequest = [
       "PUT",
       canonicalUri,
-      params,
+      queryParams,
       `host:${host}`,
       "host",
       "UNSIGNED-PAYLOAD"
@@ -79,8 +79,17 @@ export async function POST(request: NextRequest) {
     const kSigning = crypto.createHmac("sha256", kService).update("aws4_request").digest();
     const signature = crypto.createHmac("sha256", kSigning).update(stringToSign).digest("hex");
 
-    // Build presigned URL
-    const presignedUrl = `${r2Endpoint}/${r2Bucket}/${key}?${params}&X-Amz-Signature=${signature}`;
+    // Build presigned URL (encode the query string for actual URL)
+    const urlEncodedCredential = encodeURIComponent(credential);
+    const finalQueryParams = [
+      `X-Amz-Algorithm=AWS4-HMAC-SHA256`,
+      `X-Amz-Credential=${urlEncodedCredential}`,
+      `X-Amz-Date=${amzDate}`,
+      `X-Amz-Expires=${expires}`,
+      `X-Amz-SignedHeaders=host`,
+    ].sort().join("&");
+
+    const presignedUrl = `${r2Endpoint}/${r2Bucket}/${key}?${finalQueryParams}&X-Amz-Signature=${signature}`;
 
     // Upload file
     const arrayBuffer = await file.arrayBuffer();
