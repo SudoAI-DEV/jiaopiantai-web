@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    const type = formData.get("type") as string || "source";
-    const productId = formData.get("productId") as string || "temp";
+    const type = (formData.get("type") as string) as "source" | "generated" || "source";
+    const productId = (formData.get("productId") as string) || "temp";
 
     if (!file) {
       return NextResponse.json({ error: "Missing file" }, { status: 400 });
