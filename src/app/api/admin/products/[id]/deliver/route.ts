@@ -63,6 +63,7 @@ export async function POST(
       imageCount: approvedImages.length,
       deliveredAt: new Date(),
       deliveredBy: session.user.id,
+      createdAt: new Date(),
     });
 
     // Create delivery images
@@ -70,9 +71,10 @@ export async function POST(
       approvedImages.map((img, index) =>
         db.insert(deliveryImages).values({
           id: nanoid(),
-          deliveryBatchId: batchId,
+          batchId: batchId,
           imageId: img.id,
           sortOrder: index,
+          deliveredAt: new Date(),
         })
       )
     );
@@ -91,9 +93,12 @@ export async function POST(
       where: eq(userProfiles.id, product.userId),
     });
 
-    if (userProfile && userProfile.creditsFrozen > 0) {
-      const newFrozen = userProfile.creditsFrozen - 1;
-      const newTotalSpent = userProfile.creditsTotalSpent + 1;
+    const frozen = userProfile?.creditsFrozen || 0;
+
+    if (userProfile && frozen > 0) {
+      const newFrozen = frozen - 1;
+      const newTotalSpent = (userProfile.creditsTotalSpent || 0) + 1;
+      const newBalance = userProfile.creditsBalance || 0;
 
       await db
         .update(userProfiles)
@@ -109,8 +114,8 @@ export async function POST(
         userId: product.userId,
         type: "completion",
         amount: -1,
-        balanceAfter: userProfile.creditsBalance,
-        productId,
+        balanceAfter: newBalance,
+        referenceId: productId,
         description: `产品 ${product.productNumber} 完成`,
         createdAt: new Date(),
       });

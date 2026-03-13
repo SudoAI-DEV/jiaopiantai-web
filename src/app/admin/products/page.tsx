@@ -111,7 +111,7 @@ export default async function AdminProductsPage({
         ) : null}
       </form>
 
-      <AdminProductsClient initialProducts={productsList} />
+      <AdminProductsClient initialProducts={productsList as any} />
     </div>
   );
 }

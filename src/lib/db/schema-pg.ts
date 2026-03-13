@@ -128,6 +128,8 @@ export const productGeneratedImages = pgTable('product_generated_images', {
   sortOrder: integer("sort_order").default(0),
   batchNumber: integer("batch_number"),
   reviewStatus: varchar('review_status', { length: 20 }).default('pending'),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  reviewedBy: varchar("reviewed_by", { length: 50 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
 
@@ -169,8 +171,11 @@ export const productStyleSelections = pgTable('product_style_selections', {
 export const deliveryBatches = pgTable('delivery_batches', {
   id: varchar('id', { length: 50 }).primaryKey(),
   productId: varchar('product_id', { length: 50 }).notNull(),
+  batchNumber: integer('batch_number'),
+  imageCount: integer('image_count'),
   deliveredAt: timestamp('delivered_at', { withTimezone: true }),
   deliveredCount: integer('delivered_count').default(0),
+  deliveredBy: varchar('delivered_by', { length: 50 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
 
@@ -179,6 +184,7 @@ export const deliveryImages = pgTable('delivery_images', {
   id: varchar('id', { length: 50 }).primaryKey(),
   batchId: varchar('batch_id', { length: 50 }).notNull(),
   imageId: varchar('image_id', { length: 50 }).notNull(),
+  sortOrder: integer('sort_order'),
   deliveredAt: timestamp('delivered_at', { withTimezone: true }).notNull(),
 });
 

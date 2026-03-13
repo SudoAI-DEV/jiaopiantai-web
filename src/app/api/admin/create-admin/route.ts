@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
     // Create admin profile
     await db.insert(userProfiles).values({
       id: user.user.id,
+      userId: user.user.id,
       role: "admin",
       shopName: null,
       phone: phone || null,
@@ -54,6 +55,8 @@ export async function POST(request: NextRequest) {
       creditsBalance: 0,
       creditsFrozen: 0,
       creditsTotalSpent: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
     return NextResponse.json({
