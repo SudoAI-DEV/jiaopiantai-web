@@ -8,12 +8,18 @@ let s3Client: S3Client | null = null;
  */
 export function getS3Client(): S3Client {
   if (!s3Client) {
+    // Trim any whitespace/newlines from env vars
+    const bucketName = (process.env.R2_BUCKET_NAME || "jiaopiantai").trim();
+    const endpoint = (process.env.R2_ENDPOINT || "").trim();
+    const accessKeyId = (process.env.R2_ACCESS_KEY_ID || "").trim();
+    const secretAccessKey = (process.env.R2_SECRET_ACCESS_KEY || "").trim();
+
     s3Client = new S3Client({
       region: "auto",
-      endpoint: process.env.R2_ENDPOINT || "https://88a96747babe00a5c70ab1954e53e136.r2.cloudflarestorage.com",
+      endpoint: endpoint || "https://88a96747babe00a5c70ab1954e53e136.r2.cloudflarestorage.com",
       credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
+        accessKeyId,
+        secretAccessKey,
       },
     });
   }
@@ -28,7 +34,7 @@ export async function generateUploadUrl(
   expires: number = 3600
 ): Promise<{ uploadUrl: string; key: string }> {
   const client = getS3Client();
-  const bucket = process.env.R2_BUCKET_NAME || "jiaopiantai";
+  const bucket = (process.env.R2_BUCKET_NAME || "jiaopiantai").trim();
 
   const command = new PutObjectCommand({
     Bucket: bucket,
@@ -52,7 +58,7 @@ export async function generateDownloadUrl(
   expires: number = 3600 * 24 * 7 // 7 days by default
 ): Promise<string> {
   const client = getS3Client();
-  const bucket = process.env.R2_BUCKET_NAME || "jiaopiantai";
+  const bucket = (process.env.R2_BUCKET_NAME || "jiaopiantai").trim();
 
   const command = new GetObjectCommand({
     Bucket: bucket,
@@ -67,7 +73,7 @@ export async function generateDownloadUrl(
  */
 export async function deleteFile(key: string): Promise<void> {
   const client = getS3Client();
-  const bucket = process.env.R2_BUCKET_NAME || "jiaopiantai";
+  const bucket = (process.env.R2_BUCKET_NAME || "jiaopiantai").trim();
 
   await client.send(new DeleteObjectCommand({
     Bucket: bucket,
@@ -81,7 +87,7 @@ export async function deleteFile(key: string): Promise<void> {
 export async function fileExists(key: string): Promise<boolean> {
   try {
     const client = getS3Client();
-    const bucket = process.env.R2_BUCKET_NAME || "jiaopiantai";
+    const bucket = (process.env.R2_BUCKET_NAME || "jiaopiantai").trim();
 
     await client.send(new HeadObjectCommand({
       Bucket: bucket,
