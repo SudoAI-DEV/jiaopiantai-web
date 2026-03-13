@@ -38,7 +38,15 @@ export function LoginForm() {
         return;
       }
 
-      router.push(redirect);
+      // Get user profile to check role
+      const profileRes = await fetch("/api/dashboard");
+      const profileData = await profileRes.json();
+      
+      // Redirect based on role
+      const isAdmin = profileData?.user?.role === 'admin';
+      const targetUrl = isAdmin ? '/admin' : redirect;
+      
+      router.push(targetUrl);
       router.refresh();
     } catch (err) {
       setError("登录时发生错误");
