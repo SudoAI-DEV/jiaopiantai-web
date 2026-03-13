@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getS3Client, generateFileKey, getPublicUrl } from "@/lib/oss";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,45 +14,48 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { fileName, fileType, type = "source", productId } = body;
+    const formData = await request.formData();
+    const file = formData.get("file") as File;
+    const type = formData.get("type") as string || "source";
+    const productId = formData.get("productId") as string || "temp";
 
-    if (!fileName || !fileType) {
-      return NextResponse.json(
-        { error: "Missing fileName or fileType" },
-        { status: 400 }
-      );
+    if (!file) {
+      return NextResponse.json({ error: "Missing file" }, { status: 400 });
     }
 
     // Generate unique key for the file
     const key = generateFileKey(
       type,
       session.user.id,
-      productId || "temp",
-      fileName
+      productId,
+      file.name
     );
 
+    // Upload to R2 through server
     const s3Client = getS3Client();
     const bucket = process.env.R2_BUCKET_NAME || "jiaopiantai";
 
-    // Generate signed URL
+    // Convert file to buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: key,
-      ContentType: fileType,
+      Body: buffer,
+      ContentType: file.type,
     });
 
-    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    await s3Client.send(command);
 
     return NextResponse.json({
-      uploadUrl: signedUrl,
       key,
       publicUrl: getPublicUrl(key),
     });
   } catch (error) {
-    console.error("Generate presigned URL error:", error);
+    console.error("Upload error:", error);
     return NextResponse.json(
-      { error: "Failed to generate upload URL" },
+      { error: "Failed to upload file" },
       { status: 500 }
     );
   }

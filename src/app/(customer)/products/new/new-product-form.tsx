@@ -28,7 +28,7 @@ export function NewProductForm({
 
   const [formData, setFormData] = useState({
     name: "",
-    category: "clothing", // Default to clothing
+    category: "clothing",
     shootingRequirements: "",
     stylePreference: styleTemplates[0]?.id || "",
     specialNotes: "",
@@ -69,34 +69,27 @@ export function NewProductForm({
       try {
         const imageData = await Promise.all(
           files.map(async (file) => {
-            const res = await fetch("/api/upload/presigned-url", {
+            // Use server-side upload
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("type", "source");
+
+            const res = await fetch("/api/upload/server", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                fileName: file.name,
-                fileType: file.type,
-              }),
+              body: formData,
             });
 
-            if (!res.ok) throw new Error("Failed to get upload URL");
-
-            const { uploadUrl, publicUrl } = await res.json();
-
-            const uploadRes = await fetch(uploadUrl, {
-              method: "PUT",
-              body: file,
-              headers: { "Content-Type": file.type },
-            });
-            
-            if (!uploadRes.ok) {
-              const errorText = await uploadRes.text();
-              console.error("Upload failed:", uploadRes.status, errorText);
-              throw new Error(`Upload failed: ${uploadRes.status}`);
+            if (!res.ok) {
+              const errorText = await res.text();
+              console.error("Upload failed:", res.status, errorText);
+              throw new Error(`Upload failed: ${res.status}`);
             }
+
+            const data = await res.json();
 
             return {
               id: crypto.randomUUID(),
-              url: publicUrl,
+              url: data.publicUrl,
               file,
             };
           })
@@ -181,7 +174,6 @@ export function NewProductForm({
         <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg">{error}</div>
       )}
 
-      {/* 产品信息 + 拍摄需求合并 */}
       <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
         <h2 className="text-base font-semibold text-[#4E342E]">产品信息</h2>
         
@@ -245,7 +237,6 @@ export function NewProductForm({
         </div>
       </div>
 
-      {/* 产品图片 */}
       <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-[#4E342E]">产品图片</h2>
@@ -285,7 +276,6 @@ export function NewProductForm({
         {uploading && <p className="text-xs text-gray-500">上传中...</p>}
       </div>
 
-      {/* 风格选择 */}
       <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-[#4E342E]">选择风格</h2>
@@ -337,7 +327,6 @@ export function NewProductForm({
         </div>
       </div>
 
-      {/* 提交 */}
       <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
         <div>
           <p className="text-xs text-gray-500">消耗点数</p>
