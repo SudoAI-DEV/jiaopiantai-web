@@ -110,7 +110,8 @@ export const productSourceImages = pgTable('product_source_images', {
   fileName: varchar('file_name', { length: 255 }),
   fileSize: integer('file_size'),
   mimeType: varchar('mime_type', { length: 100 }),
-  sortOrder: integer('sort_order').default(0),
+  sortOrder: integer("sort_order").default(0),
+  batchNumber: integer("batch_number"),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
 
@@ -124,7 +125,8 @@ export const productGeneratedImages = pgTable('product_generated_images', {
   thumbnailUrl: text('thumbnail_url'),
   fileName: varchar('file_name', { length: 255 }),
   fileSize: integer('file_size'),
-  sortOrder: integer('sort_order').default(0),
+  sortOrder: integer("sort_order").default(0),
+  batchNumber: integer("batch_number"),
   reviewStatus: varchar('review_status', { length: 20 }).default('pending'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
@@ -148,7 +150,8 @@ export const styleTemplates = pgTable('style_templates', {
   description: text('description'),
   thumbnailUrl: text('thumbnail_url'),
   isActive: boolean('is_active').default(true),
-  sortOrder: integer('sort_order').default(0),
+  sortOrder: integer("sort_order").default(0),
+  batchNumber: integer("batch_number"),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
 
