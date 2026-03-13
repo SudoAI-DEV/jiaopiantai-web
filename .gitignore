@@ -1,47 +1,41 @@
-# Ralph generated files (inside .ralph/ subfolder)
-.ralph/.call_count
-.ralph/.last_reset
-.ralph/.exit_signals
-.ralph/status.json
-.ralph/.ralph_session
-.ralph/.ralph_session_history
-.ralph/.claude_session_id
-.ralph/.response_analysis
-.ralph/.circuit_breaker_state
-.ralph/.circuit_breaker_history
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Ralph logs and generated docs
-.ralph/logs/*
-!.ralph/logs/.gitkeep
-.ralph/docs/generated/*
-!.ralph/docs/generated/.gitkeep
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
-# General logs
-*.log
+# testing
+/coverage
 
-# OS files
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
 .DS_Store
-Thumbs.db
+*.pem
 
-# Temporary files
-*.tmp
-.temp/
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# Node modules (if using Node.js projects)
-node_modules/
+# env files (can opt-in for committing if needed)
+.env*
 
-# Python cache (if using Python projects)
-__pycache__/
-*.pyc
+# vercel
+.vercel
 
-# Rust build (if using Rust projects)
-target/
-
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Ralph backup directories (created by migration)
-.ralph_backup_*
+# typescript
+*.tsbuildinfo
+next-env.d.ts
