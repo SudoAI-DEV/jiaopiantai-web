@@ -1,0 +1,7 @@
+{
+  "nodeModulesDir": "none",
+  "tasks": {
+    "help": "deno run --allow-read --allow-write --allow-env --allow-net render.ts --help",
+    "render": "deno run --allow-read --allow-write --allow-env --allow-net render.ts"
+  }
+}
