@@ -4,7 +4,7 @@ import process from "node:process";
 
 export interface ProductConfig {
   product_code?: string;
-  style?: string;
+  scene?: string;
   model_image?: string;
   selected_images: string[];
   selected_image_notes: string[];
@@ -83,7 +83,7 @@ export function loadProductConfig(configPath: string): ProductConfig {
       continue;
     }
 
-    if (key === "product_code" || key === "style" || key === "model_image") {
+    if (key === "product_code" || key === "scene" || key === "model_image") {
       config[key] = stripQuotes(value);
     }
   }

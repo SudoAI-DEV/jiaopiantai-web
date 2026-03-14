@@ -1,4 +1,4 @@
 interface:
   display_name: "Organize Product Folders"
   short_description: "按产品2规范整理客户图片目录并生成要求.yaml和配置.yaml"
-  default_prompt: "使用 $organize-product-folders：把我给你的客户图片文件夹整理成“产品 2”结构，产品图片直接放在产品目录根部，不要再用原图子文件夹；同时为每个产品生成或更新 要求.yaml 与 配置.yaml。要求.yaml 负责 product_code / client / season / style / folder_requirements；配置.yaml 负责 selected_images、selected_image_notes、model_image、custom_requirements 等后续生成流程要直接消费的配置。"
+  default_prompt: "使用 $organize-product-folders：把我给你的客户图片文件夹整理成“产品 2”结构，产品图片直接放在产品目录根部，不要再用原图子文件夹；同时为每个产品生成或更新 要求.yaml 与 配置.yaml。要求.yaml 负责 product_code / client / season / scene / folder_requirements；配置.yaml 负责 selected_images、selected_image_notes、model_image、custom_requirements 等后续生成流程要直接消费的配置。"
