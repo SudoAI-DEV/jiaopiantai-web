@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getSession } from "@/lib/auth-utils";
+
+export const metadata: Metadata = {
+  title: "产品管理",
+};
 import { db } from "@/lib/db";
 import { userProfiles, products } from "@/lib/db/schema";
 import { eq, desc, sql, like, or, and } from "drizzle-orm";

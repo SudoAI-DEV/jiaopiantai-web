@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import { getSession } from "@/lib/auth-utils";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { userProfiles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { AdminHeader } from "@/components/shared/admin-header";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AdminLayout({
   children,

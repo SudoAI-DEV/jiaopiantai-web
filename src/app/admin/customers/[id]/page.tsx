@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSession } from "@/lib/auth-utils";
@@ -83,6 +84,21 @@ const statusColors: Record<string, string> = {
   failed: "bg-red-100 text-red-600",
   cancelled: "bg-gray-100 text-gray-600",
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const customer = await db.query.userProfiles.findFirst({
+    where: eq(userProfiles.id, id),
+  });
+  const name = customer?.shopName;
+  return {
+    title: name ? `${name} - 客户详情` : "客户详情",
+  };
+}
 
 const transactionLabels: Record<string, string> = {
   recharge: "充值",

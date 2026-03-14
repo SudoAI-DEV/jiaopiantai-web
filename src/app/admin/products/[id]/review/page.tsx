@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSession } from "@/lib/auth-utils";
@@ -47,6 +48,21 @@ const statusColors: Record<string, string> = {
   failed: "bg-red-100 text-red-600",
   cancelled: "bg-gray-100 text-gray-600",
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const product = await db.query.products.findFirst({
+    where: eq(products.id, id),
+  });
+  const name = product?.name;
+  return {
+    title: name ? `${name} - 产品审核` : "产品审核",
+  };
+}
 
 async function getProductForReview(productId: string) {
   const product = await db.query.products.findFirst({

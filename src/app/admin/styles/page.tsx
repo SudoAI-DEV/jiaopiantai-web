@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import { getSession } from "@/lib/auth-utils";
+
+export const metadata: Metadata = {
+  title: "风格模板管理",
+};
 import { db } from "@/lib/db";
 import { styleTemplates } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
