@@ -114,6 +114,7 @@ export function ImageReviewModal({
     setShowRejectPanel(false);
     setSelectedReasons(new Set());
     setCustomReason("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mainZoom.reset is stable
   }, [currentIndex]);
 
   const goToNext = useCallback(() => {
