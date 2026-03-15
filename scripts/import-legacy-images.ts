@@ -85,12 +85,25 @@ interface ModelIdMapping {
   [fileName: string]: string; // fileName -> customerModels.id
 }
 
+// One-off fixed mapping for legacy customer models that already exist in DB.
+const LEGACY_MODEL_ID_OVERRIDES: Record<string, ModelIdMapping> = {
+  PhzRhQC8xROPykUs4BRo3: {
+    "模特1号.png": "JRRuFlPMJLXc63-vLpuJB",
+    "模特2号.png": "pKCzwDc3SGs1hyjxl9uAG",
+    "模特3号.png": "gNuA6gprQgJ-yOAjhsCa0",
+  },
+};
+
 interface ImportMetadata {
   env: string;
   userId: string;
   importedAt: string;
   products: ProductIdMapping;
   models?: ModelIdMapping;
+}
+
+function getSeededModelIds(userId: string): ModelIdMapping {
+  return LEGACY_MODEL_ID_OVERRIDES[userId] || {};
 }
 
 // --------------- CLI Argument Parsing ---------------
@@ -759,7 +772,6 @@ async function importProducts(
         category: "clothing",
         status: "reviewing",
         selectedSceneId: product.sceneId,
-        scenePreference: product.sceneStyle,
         shootingRequirements: customReqs?.length ? customReqs.join("\n") : null,
         specialNotes: product.statusNote,
         modelId: resolvedModelId,
@@ -903,6 +915,10 @@ async function main() {
   if (metadata) {
     console.log(`\n📋 Loaded existing metadata: ${Object.keys(metadata.products).length} products`);
   }
+  const seededModelIds = getSeededModelIds(userId);
+  if (Object.keys(seededModelIds).length > 0) {
+    console.log(`  🔗 Loaded fixed model ID mappings: ${Object.keys(seededModelIds).length}`);
+  }
 
   // Scan directory
   console.log("\n📂 Scanning directory structure...");
@@ -947,7 +963,10 @@ async function main() {
     userId,
     db,
     s3,
-    metadata?.models || {},
+    {
+      ...(metadata?.models || {}),
+      ...seededModelIds,
+    },
   );
   console.log(`  Models created: ${modelsCreated}, skipped: ${modelsSkipped}`);
 

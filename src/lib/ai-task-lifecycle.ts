@@ -93,9 +93,9 @@ export async function submitProductToQueue(params: {
   }
 
   const modelId = await resolveBoundModelId({ product, userId });
-  const persistedSceneId = [product.selectedSceneId, product.scenePreference].find(
-    (value): value is string => typeof value === "string" && isValidSceneId(value)
-  );
+  const persistedSceneId = typeof product.selectedSceneId === "string" && isValidSceneId(product.selectedSceneId)
+    ? product.selectedSceneId
+    : undefined;
   if (!persistedSceneId) {
     throw new TaskLifecycleError("Please select a valid scene before submitting", 400);
   }

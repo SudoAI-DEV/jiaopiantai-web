@@ -136,7 +136,6 @@ export async function loadOrchestrationContext(
     scene: resolveScene(
       payload.scene,
       product.selectedSceneId,
-      product.scenePreference
     ),
   };
 }
@@ -144,12 +143,10 @@ export async function loadOrchestrationContext(
 function resolveScene(
   payloadScene: string | null | undefined,
   storedSceneId: string | null,
-  storedScenePreference: string | null,
 ): SceneId {
   const candidates = [
     payloadScene?.trim(),
     storedSceneId?.trim(),
-    storedScenePreference?.trim(),
   ];
 
   for (const candidate of candidates) {

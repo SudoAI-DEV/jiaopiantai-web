@@ -31,6 +31,11 @@
 - **THEN** 请求 SHALL 提交所选场景的枚举 ID
 - **AND** 前端文案 SHALL 使用“场景”而不是“风格”
 
+#### Scenario: 组件 prop 命名
+- **WHEN** `NewProductForm` 组件接收场景数据
+- **THEN** prop 名 SHALL 为 `scenes`
+- **AND** prop 类型 SHALL 为 `Scene[]`（来自 `src/lib/scenes.ts`）
+
 ### Requirement: API 枚举校验
 `POST /api/products` 接口 SHALL 只接受合法场景枚举值作为场景选择，不再接受自由文本或 legacy 回退。
 
@@ -59,10 +64,11 @@ Drizzle ORM schema 中所有与场景相关的字段名和表名 SHALL 使用 "s
 - **THEN** Drizzle 字段名 SHALL 为 `sceneId`（映射 DB 列 `scene_id`）
 - **AND** 旧字段名 `styleId` SHALL NOT 存在于 schema 导出中
 
-#### Scenario: 废弃表重命名
-- **WHEN** 引用废弃的场景模板表
-- **THEN** Drizzle 导出名 SHALL 为 `sceneTemplates`（映射 DB 表 `scene_templates`），类型为 `SceneTemplate`
-- **AND** 导出名 `styleTemplates` 和类型 `StyleTemplate` SHALL NOT 存在
+#### Scenario: scene_templates 表已移除
+- **WHEN** 检查 Drizzle schema 导出
+- **THEN** `sceneTemplates` 表定义 SHALL NOT 存在
+- **AND** `SceneTemplate` 类型 SHALL NOT 存在
+- **AND** 数据库中 `scene_templates` 表 SHALL 已通过 migration 删除
 
 #### Scenario: 场景选择表重命名
 - **WHEN** 引用产品场景选择表
