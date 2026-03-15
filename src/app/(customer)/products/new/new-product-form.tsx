@@ -221,6 +221,69 @@ export function NewProductForm({
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-[#4E342E]">选择场景</h2>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <Label htmlFor="deliveryCount" className="text-gray-500">交付数量</Label>
+            <Input
+              id="deliveryCount"
+              name="deliveryCount"
+              type="number"
+              min={1}
+              max={20}
+              value={formData.deliveryCount}
+              onChange={handleChange}
+              className="w-14 h-7 text-center text-sm"
+            />
+          </div>
+        </div>
+
+        {!hasSceneTemplates ? (
+          <div className="rounded-xl border border-dashed border-[#E6DDD1] bg-[#FBF7F1] px-4 py-6 text-sm text-[#8C7A6D]">
+            暂无可用场景，请联系管理员先配置场景模板。
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {sceneTemplates.map((scene) => {
+              const isSelected = formData.selectedStyleId === scene.id;
+
+              return (
+                <label
+                  key={scene.id}
+                  className={`group rounded-xl border cursor-pointer transition-all px-4 py-3 ${
+                    isSelected
+                      ? "border-[#FDD835] bg-[#FFF9E8] shadow-sm"
+                      : "border-[#E8E1D8] bg-white hover:border-[#D9C7A7]"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="selectedStyleId"
+                    value={scene.id}
+                    checked={isSelected}
+                    onChange={handleChange}
+                    className="sr-only"
+                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-sm text-[#4E342E]">
+                      {scene.name}
+                    </span>
+                    {isSelected && (
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FDD835] text-[#4E342E] text-xs font-bold shrink-0">
+                        ✓
+                      </span>
+                    )}
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
         <h2 className="text-base font-semibold text-[#4E342E]">产品信息</h2>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -285,73 +348,6 @@ export function NewProductForm({
             className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FDD835] text-sm"
           />
         </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-[#4E342E]">选择场景</h2>
-            <p className="mt-1 text-xs text-[#8C7A6D]">固定 4 个场景模板，作为本次生成的主要参考。</p>
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <Label htmlFor="deliveryCount" className="text-gray-500">交付数量</Label>
-            <Input
-              id="deliveryCount"
-              name="deliveryCount"
-              type="number"
-              min={1}
-              max={20}
-              value={formData.deliveryCount}
-              onChange={handleChange}
-              className="w-14 h-7 text-center text-sm"
-            />
-          </div>
-        </div>
-
-        {!hasSceneTemplates ? (
-          <div className="rounded-xl border border-dashed border-[#E6DDD1] bg-[#FBF7F1] px-4 py-6 text-sm text-[#8C7A6D]">
-            暂无可用场景，请联系管理员先配置场景模板。
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {sceneTemplates.map((scene) => {
-              const isSelected = formData.selectedStyleId === scene.id;
-
-              return (
-                <label
-                  key={scene.id}
-                  className={`group rounded-xl border cursor-pointer transition-all px-4 py-3 ${
-                    isSelected
-                      ? "border-[#FDD835] bg-[#FFF9E8] shadow-sm"
-                      : "border-[#E8E1D8] bg-white hover:border-[#D9C7A7]"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="selectedStyleId"
-                    value={scene.id}
-                    checked={isSelected}
-                    onChange={handleChange}
-                    className="sr-only"
-                  />
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-sm text-[#4E342E]">
-                      {scene.name}
-                    </span>
-                    {isSelected && (
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FDD835] text-[#4E342E] text-xs font-bold shrink-0">
-                        ✓
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-xs leading-5 text-[#8C7A6D]">
-                    {scene.description}
-                  </p>
-                </label>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* Spacer for fixed bottom bar */}
