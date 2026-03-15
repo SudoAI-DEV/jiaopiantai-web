@@ -689,7 +689,12 @@ async function importProducts(
     } else {
       // Check if product exists in database
       const existing = await db
-        .select({ id: schema.products.id, batchNumber: schema.products.batchNumber })
+        .select({
+          id: schema.products.id,
+          batchNumber: schema.products.batchNumber,
+          selectedStyleId: schema.products.selectedStyleId,
+          modelId: schema.products.modelId,
+        })
         .from(schema.products)
         .where(
           and(
@@ -705,23 +710,28 @@ async function importProducts(
         productIds[product.productNumber] = { id: productId, batchNumber: product.batchNumber };
         console.log(`  ⏭ Using existing product from DB: ${productId}`);
         
-        // Update batchNumber if not set
-        if (!existing[0].batchNumber) {
+        // Patch missing fields on existing products
+        const updates: Record<string, unknown> = {};
+        if (!existing[0].batchNumber) updates.batchNumber = product.batchNumber;
+        if (!existing[0].selectedStyleId && product.sceneId) updates.selectedStyleId = product.sceneId;
+        if (!existing[0].modelId && product.modelImageFile) {
+          const mid = modelIds[product.modelImageFile];
+          if (mid) updates.modelId = mid;
+        }
+        if (Object.keys(updates).length > 0) {
+          updates.updatedAt = new Date();
           await db
             .update(schema.products)
-            .set({ batchNumber: product.batchNumber })
+            .set(updates)
             .where(eq(schema.products.id, productId));
-          console.log(`  📝 Updated batchNumber to ${product.batchNumber}`);
+          console.log(`  📝 Updated fields: ${Object.keys(updates).filter(k => k !== 'updatedAt').join(', ')}`);
           stats.productsUpdated++;
         }
-        
-        stats.productsSkipped++;
-        continue;
+      } else {
+        // Create new product
+        productId = nanoid();
+        productIds[product.productNumber] = { id: productId, batchNumber: product.batchNumber };
       }
-
-      // Create new product
-      productId = nanoid();
-      productIds[product.productNumber] = { id: productId, batchNumber: product.batchNumber };
     }
 
     if (!isExisting) {
@@ -754,9 +764,21 @@ async function importProducts(
       stats.productsCreated++;
     }
 
-    // Upload source images (only for new products)
-    if (!isExisting && product.sourceImages.length > 0) {
-      console.log(`  📷 Uploading ${product.sourceImages.length} source images...`);
+    // Upload source images (skip if product already has them)
+    if (product.sourceImages.length > 0) {
+      const existingSrcCount = isExisting
+        ? (await db
+            .select({ id: schema.productSourceImages.id })
+            .from(schema.productSourceImages)
+            .where(eq(schema.productSourceImages.productId, productId))
+            .limit(1)
+          ).length
+        : 0;
+
+      if (existingSrcCount > 0) {
+        console.log(`  ⏭ Source images already imported`);
+      } else {
+        console.log(`  📷 Uploading ${product.sourceImages.length} source images...`);
 
       await pMap(
         product.sourceImages,
@@ -788,13 +810,31 @@ async function importProducts(
         },
         5
       );
+      }
     }
 
-    // Upload generated images per batch (always upload, even for existing products)
-    for (const batch of product.generatedBatches) {
-      console.log(
-        `  🖼 Uploading batch_${String(batch.batchNumber).padStart(2, "0")}: ${batch.images.length} images...`
+    // Upload generated images per batch — skip batches already in DB
+    if (product.generatedBatches.length > 0) {
+      // Query existing batch numbers for this product to avoid duplicates
+      const existingGenImages = await db
+        .select({ batchNumber: schema.productGeneratedImages.batchNumber })
+        .from(schema.productGeneratedImages)
+        .where(eq(schema.productGeneratedImages.productId, productId));
+      const existingBatchNums = new Set(
+        existingGenImages.map((r) => r.batchNumber).filter((n): n is number => n !== null)
       );
+
+      for (const batch of product.generatedBatches) {
+        if (existingBatchNums.has(batch.batchNumber)) {
+          console.log(
+            `  ⏭ batch_${String(batch.batchNumber).padStart(2, "0")}: ${batch.images.length} images already imported`
+          );
+          continue;
+        }
+
+        console.log(
+          `  🖼 Uploading batch_${String(batch.batchNumber).padStart(2, "0")}: ${batch.images.length} images...`
+        );
 
       await pMap(
         batch.images,
@@ -825,6 +865,7 @@ async function importProducts(
         },
         5
       );
+      }
     }
   }
 
