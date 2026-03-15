@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { products, userProfiles, type ProductStatus } from "@/lib/db/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { isValidSceneId } from "@/lib/scenes";
 
 // Get product number (format: YY + 4-digit sequence)
 async function getNextProductNumber(): Promise<string> {
@@ -96,6 +97,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!isValidSceneId(stylePreference)) {
+      return NextResponse.json(
+        { error: "Invalid scene ID" },
+        { status: 400 }
+      );
+    }
+
     // Get next product number
     const productNumber = await getNextProductNumber();
 
@@ -125,6 +133,7 @@ export async function POST(request: NextRequest) {
         id: productId,
         productNumber,
         name,
+        modelId: null,
         status: "draft",
       },
     });

@@ -27,7 +27,10 @@ export const createProductSchema = z.object({
   }),
   description: z.string().max(500, "描述不能超过500字").optional(),
   shootingRequirements: z.string().max(1000, "拍摄需求不能超过1000字").optional(),
-  stylePreference: z.string().max(500, "风格偏好不能超过500字").optional(),
+  stylePreference: z.enum(
+    ["seaside-art", "country-garden", "urban-street", "architectural-editorial"],
+    { message: "请选择有效的场景风格" }
+  ),
   specialNotes: z.string().max(500, "特别说明不能超过500字").optional(),
   deliveryCount: z.number().int().min(1).max(20).default(6),
 });

@@ -5,17 +5,11 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-interface SceneTemplate {
-  id: string;
-  name: string;
-  description: string | null;
-  thumbnailUrl: string | null;
-}
+import type { Scene } from "@/lib/scenes";
 
 interface NewProductFormProps {
   categories: { value: string; label: string }[];
-  sceneTemplates: SceneTemplate[];
+  sceneTemplates: Scene[];
   availableCredits: number;
 }
 

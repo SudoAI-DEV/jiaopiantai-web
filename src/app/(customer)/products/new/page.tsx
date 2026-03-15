@@ -1,18 +1,10 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth-utils";
 import { db } from "@/lib/db";
-import { userProfiles, styleTemplates } from "@/lib/db/schema";
+import { userProfiles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { SCENES } from "@/lib/scenes";
 import { NewProductForm } from "./new-product-form";
-
-async function getSceneTemplates() {
-  return db
-    .select()
-    .from(styleTemplates)
-    .where(eq(styleTemplates.isActive, true))
-    .orderBy(styleTemplates.sortOrder)
-    .limit(4);
-}
 
 async function getUserCredits() {
   const session = await getSession();
@@ -38,10 +30,7 @@ const CATEGORIES = [
 ];
 
 export default async function NewProductPage() {
-  const [sceneTemplates, credits] = await Promise.all([
-    getSceneTemplates(),
-    getUserCredits(),
-  ]);
+  const credits = await getUserCredits();
 
   return (
     <div className="w-full overflow-x-hidden">
@@ -73,7 +62,7 @@ export default async function NewProductPage() {
       ) : (
         <NewProductForm
           categories={CATEGORIES}
-          sceneTemplates={sceneTemplates}
+          sceneTemplates={[...SCENES]}
           availableCredits={credits}
         />
       )}

@@ -83,6 +83,30 @@ export const creditTransactions = pgTable('credit_transactions', {
 
 export type CreditTransaction = typeof creditTransactions.$inferSelect;
 
+// Customer private models
+export const customerModels = pgTable('customer_models', {
+  id: varchar('id', { length: 50 }).primaryKey(),
+  userId: varchar('user_id', { length: 50 }).notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  imageUrl: text('image_url').notNull(),
+  fileName: varchar('file_name', { length: 255 }),
+  fileSize: integer('file_size'),
+  mimeType: varchar('mime_type', { length: 100 }),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
+}, (table) => ({
+  userActiveCreatedIdx: index('customer_models_user_active_created_idx').on(
+    table.userId,
+    table.isActive,
+    table.createdAt
+  ),
+}));
+
+export type CustomerModel = typeof customerModels.$inferSelect;
+export type NewCustomerModel = typeof customerModels.$inferInsert;
+
 // Products table
 export const products = pgTable('products', {
   id: varchar('id', { length: 50 }).primaryKey(),
@@ -96,13 +120,16 @@ export const products = pgTable('products', {
   shootingRequirements: text('shooting_requirements'),
   stylePreference: text('style_preference'),
   specialNotes: text('special_notes'),
+  modelId: varchar('model_id', { length: 50 }),
   selectedStyleId: varchar('selected_style_id', { length: 50 }),
   batchNumber: integer('batch_number'),
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   reviewedBy: varchar("reviewed_by", { length: 50 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
-});
+}, (table) => ({
+  modelIdx: index('products_model_id_idx').on(table.modelId),
+}));
 
 export type Product = typeof products.$inferSelect;
 export type ProductStatus = Product['status'];
@@ -154,7 +181,8 @@ export const imageFeedbacks = pgTable('image_feedbacks', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
 
-// Style templates
+// Style templates — DEPRECATED: scenes are now code-driven (src/lib/scenes.ts)
+// Table definition kept for migration compatibility; no code should query this table.
 export const styleTemplates = pgTable('style_templates', {
   id: varchar('id', { length: 50 }).primaryKey(),
   name: varchar('name', { length: 100 }).notNull(),
