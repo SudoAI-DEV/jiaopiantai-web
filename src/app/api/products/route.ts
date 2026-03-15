@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { products, userProfiles, type ProductStatus } from "@/lib/db/schema";
+import { products, type ProductStatus } from "@/lib/db/schema";
+import {
+  buildGeneratedProductName,
+  normalizeBatchNumber,
+} from "@/lib/product-identity";
+import { getSceneByValue } from "@/lib/scenes";
 import { eq, desc, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { isValidSceneId } from "@/lib/scenes";
 
 // Get product number (format: YY + 4-digit sequence)
 async function getNextProductNumber(): Promise<string> {
@@ -87,17 +91,35 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, category, description, shootingRequirements, stylePreference, specialNotes, deliveryCount } = body;
+    const {
+      name,
+      category,
+      description,
+      shootingRequirements,
+      stylePreference,
+      selectedStyleId,
+      specialNotes,
+      deliveryCount,
+      batchNumber,
+    } = body;
 
     // Validate required fields
-    if (!name || !category || !stylePreference) {
+    if (!category) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    if (!isValidSceneId(stylePreference)) {
+    const selectedScene = getSceneByValue(
+      typeof selectedStyleId === "string" && selectedStyleId.trim().length > 0
+        ? selectedStyleId.trim()
+        : typeof stylePreference === "string" && stylePreference.trim().length > 0
+          ? stylePreference.trim()
+          : ""
+    );
+
+    if (!selectedScene) {
       return NextResponse.json(
         { error: "Invalid scene ID" },
         { status: 400 }
@@ -106,6 +128,13 @@ export async function POST(request: NextRequest) {
 
     // Get next product number
     const productNumber = await getNextProductNumber();
+    const resolvedBatchNumber = normalizeBatchNumber(batchNumber);
+    const generatedName = buildGeneratedProductName({
+      requestedName: typeof name === "string" ? name : null,
+      productNumber,
+      batchNumber: resolvedBatchNumber,
+      sceneName: selectedScene.name,
+    });
 
     // Create product
     const productId = nanoid();
@@ -113,16 +142,18 @@ export async function POST(request: NextRequest) {
       id: productId,
       productNumber,
       userId: session.user.id,
-      name,
+      name: generatedName,
       category,
       description: description || null,
       shootingRequirements:
         typeof shootingRequirements === "string" && shootingRequirements.trim().length > 0
           ? shootingRequirements.trim()
           : null,
-      stylePreference,
+      stylePreference: selectedScene.id,
       specialNotes: specialNotes || null,
       deliveryCount: deliveryCount || 6,
+      selectedStyleId: selectedScene.id,
+      batchNumber: resolvedBatchNumber,
       status: "draft",
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -132,7 +163,9 @@ export async function POST(request: NextRequest) {
       product: {
         id: productId,
         productNumber,
-        name,
+        name: generatedName,
+        batchNumber: resolvedBatchNumber,
+        selectedStyleId: selectedScene.id,
         modelId: null,
         status: "draft",
       },
