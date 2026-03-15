@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OptimizedImage } from "@/components/ui/optimized-image";
 
 export const metadata: Metadata = {
-  title: "风格模板管理",
+  title: "场景模板管理",
 };
 
 export default async function AdminStylesPage() {
@@ -14,7 +14,7 @@ export default async function AdminStylesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#4E342E]">风格模板管理</h1>
+          <h1 className="text-2xl font-bold text-[#4E342E]">场景模板管理</h1>
           <p className="text-gray-600">代码内置场景（如需修改请编辑 src/lib/scenes.ts）</p>
         </div>
       </div>

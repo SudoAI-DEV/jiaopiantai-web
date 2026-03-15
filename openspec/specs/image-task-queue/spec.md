@@ -10,13 +10,13 @@
 - **AND** payload 至少包含 `productId`、`aiGenerationTaskId`、源图信息以及 DB-native orchestration context
 
 #### Scenario: DB 上下文作为正式输入
-- **WHEN** 提交产品时已存在产品字段、源图记录、用户要求、风格选择或模特选择
+- **WHEN** 提交产品时已存在产品字段、源图记录、场景选择或模特选择
 - **THEN** 系统 SHALL 将这些 DB 记录视为正式编排输入
 - **AND** 后续 worker SHALL 从这些输入衍生服装分析与 scene planning
 
-#### Scenario: legacy 字段仅作兼容输入
+#### Scenario: 提交接口拒绝 legacy 输入
 - **WHEN** 提交产品时额外提供 `productConfigPath`、`selectedImages`、`selectedImageNotes`、`modelImage` 或 `customRequirements`
-- **THEN** 系统 MAY 将这些字段作为兼容输入
+- **THEN** 系统 SHALL 返回 400
 - **AND** 不应把 `skills` 或本地目录结构当作运行时硬依赖
 
 #### Scenario: clothing analysis 链式触发

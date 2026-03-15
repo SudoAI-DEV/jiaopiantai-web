@@ -143,13 +143,13 @@ export async function loadOrchestrationContext(
 
 function resolveScene(
   payloadScene: string | null | undefined,
-  selectedStyleId: string | null,
-  stylePreference: string | null,
+  storedSceneId: string | null,
+  storedScenePreference: string | null,
 ): SceneId {
   const candidates = [
     payloadScene?.trim(),
-    selectedStyleId?.trim(),
-    stylePreference?.trim(),
+    storedSceneId?.trim(),
+    storedScenePreference?.trim(),
   ];
 
   for (const candidate of candidates) {

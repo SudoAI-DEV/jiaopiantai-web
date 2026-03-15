@@ -3,7 +3,126 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { ImageModel, ModelMessage } from "ai";
 import { patchDb, type MockStore } from "../test-helpers/mock-db.js";
+
+function buildClothingAnalysis(reference: string) {
+  return {
+    selectedSources: [
+      {
+        reference,
+        role: "front_overall" as const,
+        note: "正面整体",
+      },
+    ],
+    imageDescriptions: [
+      {
+        file: reference,
+        role: "front_overall",
+        description: "连衣裙正面整体图",
+        visibleDetails: ["V 领", "腰线", "裙摆"],
+      },
+    ],
+    clothingSummary: {
+      category: "dress",
+      color: "ivory",
+      fabric: "linen",
+      silhouette: "A-line",
+      length: "midi",
+      keyFeatures: ["V 领", "收腰", "褶皱裙摆"],
+      frontBackDifferences: "背面有绑带，正面无绑带",
+      decorationElements: [],
+    },
+    mustShowDetails: ["V 领", "腰线", "裙摆褶皱"],
+    frontOnlyDetails: ["胸前蕾丝边"],
+    backOnlyDetails: ["背部绑带"],
+    forbiddenMistakes: ["不要改成短裙", "不要去掉腰线"],
+  };
+}
+
+function buildScenePlan(params: {
+  productId: string;
+  aiGenerationTaskId: string;
+  sourceImageId: string;
+  sourceImageUrl: string;
+  selectedModel: {
+    id: string;
+    name: string;
+    description?: string | null;
+    imageUrl: string;
+  };
+  scene?: string;
+}) {
+  const {
+    productId,
+    aiGenerationTaskId,
+    sourceImageId,
+    sourceImageUrl,
+    selectedModel,
+    scene = "country-garden",
+  } = params;
+
+  return {
+    metadata: {
+      productId,
+      aiGenerationTaskId,
+      scene,
+      sourceImageIds: [sourceImageId],
+      sourceImageUrls: [sourceImageUrl],
+      sourceImageNotes: ["正面主图"],
+      selectedModel,
+      batchDiversityContext: {
+        siblingsChecked: [],
+        avoidRepeating: [],
+      },
+    },
+    clothingDescription: "象牙色亚麻连衣裙，强调腰线与裙摆层次。",
+    sceneName: scene,
+    scenes: Array.from({ length: 10 }, (_, index) => ({
+      id: index + 1,
+      shotName: `scene-${index + 1}`,
+      framing: index < 5 ? ("full_body" as const) : ("close_up" as const),
+      sceneType: index < 5 ? "hero" : "detail",
+      sceneFamily: index < 5 ? "garden" : "detail-wall",
+      microLocation: index < 5 ? `path-${index + 1}` : `crop-${index + 1}`,
+      diversityReason: `avoid-repeat-${index + 1}`,
+      pose: "stand naturally",
+      lighting: "soft daylight",
+      background: "clean background",
+      modelDirection: "look slightly left",
+      colorTone: "warm neutral",
+      cropFocus: index >= 5 ? "dress detail" : undefined,
+      sourceImageIndexes: [1],
+      renderGoal: "final" as const,
+      requiredDetails: ["腰线", "裙摆"],
+      frontRequiredDetails: ["胸前蕾丝边"],
+      backOnlyDetails: ["背部绑带"],
+      bottomRequiredDetails: ["裙摆褶皱"],
+      forbiddenDetails: ["不要改领口"],
+      seed: 2000 + index,
+      fullPrompt: `Render scene ${index + 1} with clean ecommerce composition.`,
+    })),
+  };
+}
+
+function buildImageGenerationResult(label: string) {
+  return {
+    images: [
+      {
+        uint8Array: Buffer.from(label),
+        mediaType: "image/png",
+      },
+    ],
+    warnings: [],
+    responses: [],
+    providerMetadata: {},
+    usage: {
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+    },
+  } as any;
+}
 
 describe("Credit flow", () => {
   let appDb: any;
@@ -13,14 +132,22 @@ describe("Credit flow", () => {
   let submitProductToQueue: (params: {
     productId: string;
     userId: string;
-    generationConfig?: any;
   }) => Promise<any>;
   let cancelPendingProductTask: (params: {
     productId: string;
     userId: string;
   }) => Promise<any>;
-  let handleImageGeneration: (payload: any) => Promise<any>;
-  let setGeminiClientFactoryForTests: (factory: (() => Promise<any>) | null) => void;
+  let handleClothingAnalysis: (payload: any) => Promise<any>;
+  let handleScenePlanning: (payload: any) => Promise<any>;
+  let handleSceneRender: (payload: any) => Promise<any>;
+  let resetAiSdkTestHooks: () => void;
+  let setStructuredObjectGeneratorForTests: (
+    generator:
+      | ((args: { messages: ModelMessage[]; schema: unknown }) => Promise<unknown>)
+      | null
+  ) => void;
+  let setImageGenerationForTests: ((generator: ((args: any) => Promise<any>) | null) => void);
+  let setTestModels: (params: { textModel?: any; imageModel?: ImageModel | null }) => void;
   let setTaskLifecycleDbForTests: (nextDb: any | null) => void;
   let setUploadToR2ForTests: (
     factory: ((buffer: Buffer, key: string, mimeType: string) => Promise<string>) | null
@@ -43,18 +170,22 @@ describe("Credit flow", () => {
     workerDb = workerDbModule.db;
     closeWorkerDb = workerDbModule.closeDb;
 
-    const imageModule = await import("./image-generation.js");
-    handleImageGeneration = imageModule.handleImageGeneration;
-    setUploadToR2ForTests = imageModule.setUploadToR2ForTests;
+    ({ handleClothingAnalysis } = await import("./clothing-analysis.js"));
+    ({ handleScenePlanning } = await import("./scene-planning.js"));
+    ({ handleSceneRender, setUploadToR2ForTests } = await import("./scene-render.js"));
 
-    const geminiModule = await import("../lib/gemini.js");
-    setGeminiClientFactoryForTests = geminiModule.setGeminiClientFactoryForTests;
+    ({
+      resetAiSdkTestHooks,
+      setImageGenerationForTests,
+      setStructuredObjectGeneratorForTests,
+      setTestModels,
+    } = await import("../lib/ai-sdk.js"));
   });
 
   afterEach(() => {
     mock.restoreAll();
     setTaskLifecycleDbForTests(null);
-    setGeminiClientFactoryForTests(null);
+    resetAiSdkTestHooks();
     setUploadToR2ForTests(null);
   });
 
@@ -67,6 +198,12 @@ describe("Credit flow", () => {
 
   it("freezes credits on submit and settles them after generation completes", async () => {
     const createdAt = new Date("2026-03-15T16:00:00.000Z");
+    const tempDir = await mkdtemp(join(tmpdir(), "credit-flow-settle-"));
+    const sourceImagePath = join(tempDir, "front.jpg");
+    const modelImagePath = join(tempDir, "model.png");
+    await writeFile(sourceImagePath, Buffer.from("source-image"));
+    await writeFile(modelImagePath, Buffer.from("model-image"));
+
     const store: MockStore = {
       products: [
         {
@@ -76,7 +213,8 @@ describe("Credit flow", () => {
           category: "clothing",
           status: "draft",
           shootingRequirements: "自然街拍",
-          stylePreference: "法式",
+          stylePreference: "country-garden",
+          selectedStyleId: "country-garden",
           specialNotes: "保留版型",
           createdAt,
           updatedAt: createdAt,
@@ -86,7 +224,8 @@ describe("Credit flow", () => {
         {
           id: "src_credit_1",
           productId: "prod_credit_settle",
-          url: "https://assets.example.com/credit-1.jpg",
+          url: sourceImagePath,
+          fileName: "front.jpg",
           createdAt,
         },
       ],
@@ -99,7 +238,7 @@ describe("Credit flow", () => {
           userId: "user_credit",
           name: "Default Credit Model",
           description: "默认模特",
-          imageUrl: "https://assets.example.com/models/credit-default.png",
+          imageUrl: modelImagePath,
           isActive: true,
           createdAt,
           updatedAt: createdAt,
@@ -121,33 +260,32 @@ describe("Credit flow", () => {
     patchDb(appDb, store);
     patchDb(workerDb, store);
     setTaskLifecycleDbForTests(appDb);
+    setTestModels({ imageModel: {} as ImageModel });
+    let structuredCall = 0;
+    setStructuredObjectGeneratorForTests(async () => {
+      structuredCall += 1;
+      if (structuredCall === 1) {
+        return buildClothingAnalysis("front.jpg");
+      }
 
-    const tempDir = await mkdtemp(join(tmpdir(), "credit-flow-settle-"));
-    const sourceImagePath = join(tempDir, "front.jpg");
-    await writeFile(sourceImagePath, Buffer.from("source-image"));
-
-    setGeminiClientFactoryForTests(async () => ({
-      models: {
-        async generateContent() {
-          return {
-            candidates: [
-              {
-                content: {
-                  parts: [
-                    {
-                      inlineData: {
-                        mimeType: "image/png",
-                        data: Buffer.from("generated-image").toString("base64"),
-                      },
-                    },
-                  ],
-                },
-              },
-            ],
-          };
+      return buildScenePlan({
+        productId: "prod_credit_settle",
+        aiGenerationTaskId: store.ai_generation_tasks[0].id,
+        sourceImageId: "src_credit_1",
+        sourceImageUrl: sourceImagePath,
+        selectedModel: {
+          id: "model_credit_default",
+          name: "Default Credit Model",
+          description: "默认模特",
+          imageUrl: modelImagePath,
         },
-      },
-    }));
+      });
+    });
+    setImageGenerationForTests(async (args) => {
+      return buildImageGenerationResult(
+        `generated-${args.prompt.text.includes("scene 10") ? "10" : "scene"}`
+      );
+    });
     setUploadToR2ForTests(async () => "https://cdn.example.com/credit-settle.png");
 
     try {
@@ -166,23 +304,17 @@ describe("Credit flow", () => {
       assert.equal(store.ai_generation_tasks.length, 1);
       assert.equal(store.task_queue.length, 1);
 
-      const aiTaskId = store.ai_generation_tasks[0].id;
-      const result = await handleImageGeneration({
-        productId: "prod_credit_settle",
-        aiGenerationTaskId: aiTaskId,
-        sourceImageUrls: [sourceImagePath],
-        styleAnalysis: null,
-        productInfo: {
-          name: "Credit Settle Product",
-          category: "clothing",
-          shootingRequirements: "自然街拍",
-          stylePreference: "法式",
-          specialNotes: "保留版型",
-        },
-        targetCount: 1,
-      });
+      const clothingResult = await handleClothingAnalysis(store.task_queue[0].payload);
+      assert.deepEqual(clothingResult.mustShowDetails, ["V 领", "腰线", "裙摆褶皱"]);
+      assert.equal(store.task_queue[1].type, "scene_planning");
 
-      assert.equal(result.generatedCount, 1);
+      const scenePlan = await handleScenePlanning(store.task_queue[1].payload);
+      assert.equal(scenePlan.metadata.scene, "country-garden");
+      assert.equal(store.task_queue[2].type, "scene_render");
+
+      const result = await handleSceneRender(store.task_queue[2].payload);
+
+      assert.equal(result.generatedCount, 10);
       assert.equal(store.user_profiles[0].creditsBalance, 4);
       assert.equal(store.user_profiles[0].creditsFrozen, 0);
       assert.equal(store.user_profiles[0].creditsTotalSpent, 1);
@@ -191,7 +323,7 @@ describe("Credit flow", () => {
         store.credit_transactions.map((txn) => txn.type),
         ["submission", "settlement"]
       );
-      assert.equal(store.product_generated_images.length, 1);
+      assert.equal(store.product_generated_images.length, 10);
       assert.equal(store.products[0].status, "reviewing");
     } finally {
       await rm(tempDir, { recursive: true, force: true });
@@ -208,6 +340,8 @@ describe("Credit flow", () => {
           name: "Credit Refund Product",
           category: "clothing",
           status: "draft",
+          stylePreference: "country-garden",
+          selectedStyleId: "country-garden",
           createdAt,
           updatedAt: createdAt,
         },
@@ -290,6 +424,8 @@ describe("Credit flow", () => {
           name: "Bind Model Product",
           category: "clothing",
           status: "draft",
+          stylePreference: "country-garden",
+          selectedStyleId: "country-garden",
           createdAt,
           updatedAt: createdAt,
         },
@@ -364,6 +500,8 @@ describe("Credit flow", () => {
           name: "Reuse Model Product",
           category: "clothing",
           status: "draft",
+          stylePreference: "country-garden",
+          selectedStyleId: "country-garden",
           createdAt,
           updatedAt: createdAt,
         },
@@ -437,6 +575,8 @@ describe("Credit flow", () => {
           name: "No Model Product",
           category: "clothing",
           status: "draft",
+          stylePreference: "country-garden",
+          selectedStyleId: "country-garden",
           createdAt,
           updatedAt: createdAt,
         },
@@ -490,6 +630,8 @@ describe("Credit flow", () => {
           name: "Foreign Model Product",
           category: "clothing",
           status: "draft",
+          stylePreference: "country-garden",
+          selectedStyleId: "country-garden",
           createdAt,
           updatedAt: createdAt,
         },

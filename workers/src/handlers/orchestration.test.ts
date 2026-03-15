@@ -188,7 +188,7 @@ describe('AI SDK orchestration handlers', () => {
           name: 'Ivory Dress',
           category: 'dress',
           shootingRequirements: '突出腰线',
-          stylePreference: 'editorial',
+          stylePreference: 'architectural-editorial',
           specialNotes: '保留背面绑带',
           status: 'submitted',
           createdAt: now,
@@ -250,14 +250,14 @@ describe('AI SDK orchestration handlers', () => {
       aiGenerationTaskId: 'ai_sibling_a',
       sourceImageId: 'src_sibling_a',
       sourceImageUrl: 'https://assets.example.com/sibling-a.jpg',
-      scene: 'editorial',
+      scene: 'architectural-editorial',
     });
     const siblingPlanB = buildScenePlan({
       productId: 'prod_sibling_b',
       aiGenerationTaskId: 'ai_sibling_b',
       sourceImageId: 'src_sibling_b',
       sourceImageUrl: 'https://assets.example.com/sibling-b.jpg',
-      scene: 'editorial',
+      scene: 'architectural-editorial',
     });
 
     const store: MockStore = {
@@ -269,7 +269,7 @@ describe('AI SDK orchestration handlers', () => {
           name: 'Scene Product',
           category: 'dress',
           shootingRequirements: '卖衣服',
-          stylePreference: 'editorial',
+          stylePreference: 'architectural-editorial',
           specialNotes: '不要换领口',
           status: 'submitted',
           createdAt: now,
@@ -281,7 +281,7 @@ describe('AI SDK orchestration handlers', () => {
           name: 'Sibling A',
           category: 'dress',
           shootingRequirements: '卖衣服',
-          stylePreference: 'editorial',
+          stylePreference: 'architectural-editorial',
           specialNotes: null,
           status: 'reviewing',
           createdAt: new Date('2026-03-14T10:00:00.000Z'),
@@ -293,7 +293,7 @@ describe('AI SDK orchestration handlers', () => {
           name: 'Sibling B',
           category: 'dress',
           shootingRequirements: '卖衣服',
-          stylePreference: 'editorial',
+          stylePreference: 'architectural-editorial',
           specialNotes: null,
           status: 'reviewing',
           createdAt: new Date('2026-03-13T10:00:00.000Z'),
@@ -357,7 +357,7 @@ describe('AI SDK orchestration handlers', () => {
           payload: {
             productId: 'prod_sibling_a',
             aiGenerationTaskId: 'ai_sibling_a',
-            scene: 'editorial',
+            scene: 'architectural-editorial',
           },
           result: siblingPlanA,
           referenceId: 'prod_sibling_a',
@@ -374,7 +374,7 @@ describe('AI SDK orchestration handlers', () => {
           payload: {
             productId: 'prod_sibling_b',
             aiGenerationTaskId: 'ai_sibling_b',
-            scene: 'editorial',
+            scene: 'architectural-editorial',
           },
           result: siblingPlanB,
           referenceId: 'prod_sibling_b',
@@ -414,7 +414,7 @@ describe('AI SDK orchestration handlers', () => {
     const result = await handleScenePlanning({
       productId: 'prod_scene',
       aiGenerationTaskId: 'ai_scene',
-      scene: 'editorial',
+      scene: 'architectural-editorial',
     });
 
     assert.equal(result.scenes.length, 10);
@@ -432,7 +432,7 @@ describe('AI SDK orchestration handlers', () => {
     assert.equal(store.task_queue.at(-1)?.type, 'scene_render');
   });
 
-  it('prefers selectedStyleId over legacy category aliases when resolving the scene enum', async () => {
+  it('prefers payload scene over the persisted product scene enum', async () => {
     const now = new Date('2026-03-15T10:30:00.000Z');
     const store: MockStore = {
       products: [
@@ -440,8 +440,8 @@ describe('AI SDK orchestration handlers', () => {
           id: 'prod_scene_enum',
           userId: 'user_scene_enum',
           name: 'Scene Enum Product',
-          category: '海边艺术',
-          stylePreference: '产品 2',
+          category: 'dress',
+          stylePreference: 'seaside-art',
           selectedStyleId: 'urban-street',
           shootingRequirements: '卖衣服',
           specialNotes: null,
@@ -512,6 +512,7 @@ describe('AI SDK orchestration handlers', () => {
     const result = await handleScenePlanning({
       productId: 'prod_scene_enum',
       aiGenerationTaskId: 'ai_scene_enum',
+      scene: 'urban-street',
     });
 
     assert.equal(result.metadata.scene, 'urban-street');
@@ -520,7 +521,7 @@ describe('AI SDK orchestration handlers', () => {
     assert.match(capturedPrompt, /场景参考模板：scene-d-urban-street/);
   });
 
-  it('maps legacy chinese scene names onto the scene enum registry', async () => {
+  it('fails fast when no valid scene enum exists', async () => {
     const now = new Date('2026-03-15T10:45:00.000Z');
     const store: MockStore = {
       products: [
@@ -584,27 +585,14 @@ describe('AI SDK orchestration handlers', () => {
 
     patchDb(db, store);
 
-    let capturedPrompt = '';
-    setStructuredObjectGeneratorForTests(async ({ messages }) => {
-      const [message] = messages;
-      capturedPrompt = typeof message.content === 'string' ? message.content : '';
-      return buildScenePlan({
-        productId: 'prod_scene_legacy',
-        aiGenerationTaskId: 'ai_scene_legacy',
-        sourceImageId: 'src_scene_legacy',
-        sourceImageUrl: 'https://assets.example.com/scene-legacy.jpg',
-        scene: 'seaside-art',
-      });
-    });
-
-    const result = await handleScenePlanning({
-      productId: 'prod_scene_legacy',
-      aiGenerationTaskId: 'ai_scene_legacy',
-    });
-
-    assert.equal(result.metadata.scene, 'seaside-art');
-    assert.match(capturedPrompt, /目标场景ID：seaside-art/);
-    assert.match(capturedPrompt, /目标场景：海边艺术/);
+    await assert.rejects(
+      () =>
+        handleScenePlanning({
+          productId: 'prod_scene_legacy',
+          aiGenerationTaskId: 'ai_scene_legacy',
+        }),
+      /Missing valid scene enum/
+    );
   });
 
   it('loads scene plan from task results and completes scene render with settlement', async () => {
@@ -621,8 +609,7 @@ describe('AI SDK orchestration handlers', () => {
       sourceImageId: 'src_render',
       sourceImageUrl: sourceImagePath,
       sourceImageNote: '锁定裙摆',
-      modelImageUrl: modelImagePath,
-      scene: 'editorial',
+      scene: 'architectural-editorial',
     });
 
     const store: MockStore = {
@@ -634,7 +621,7 @@ describe('AI SDK orchestration handlers', () => {
           name: 'Render Product',
           category: 'dress',
           shootingRequirements: '突出裙摆',
-          stylePreference: 'editorial',
+          stylePreference: 'architectural-editorial',
           specialNotes: '模特保持一致',
           status: 'submitted',
           createdAt: now,
@@ -700,7 +687,7 @@ describe('AI SDK orchestration handlers', () => {
           payload: {
             productId: 'prod_render',
             aiGenerationTaskId: 'ai_render',
-            scene: 'editorial',
+            scene: 'architectural-editorial',
           },
           result: scenePlan,
           referenceId: 'prod_render',
@@ -765,14 +752,22 @@ describe('AI SDK orchestration handlers', () => {
     const now = new Date('2026-03-15T12:00:00.000Z');
     const tempDir = await mkdtemp(join(tmpdir(), 'scene-render-retry-'));
     const sourceImagePath = join(tempDir, 'source.jpg');
+    const modelImagePath = join(tempDir, 'model.png');
     await writeFile(sourceImagePath, Buffer.from('source-image'));
+    await writeFile(modelImagePath, Buffer.from('model-image'));
 
     const scenePlan = buildScenePlan({
       productId: 'prod_retry',
       aiGenerationTaskId: 'ai_retry',
       sourceImageId: 'src_retry',
       sourceImageUrl: sourceImagePath,
-      scene: 'editorial',
+      selectedModel: {
+        id: 'model_retry',
+        name: 'Retry Model',
+        description: '长发模特，姿态稳定',
+        imageUrl: modelImagePath,
+      },
+      scene: 'architectural-editorial',
     });
 
     const store: MockStore = {
@@ -780,12 +775,25 @@ describe('AI SDK orchestration handlers', () => {
         {
           id: 'prod_retry',
           userId: 'user_retry',
+          modelId: 'model_retry',
           name: 'Retry Product',
           category: 'dress',
           shootingRequirements: '突出裙摆',
-          stylePreference: 'editorial',
+          stylePreference: 'architectural-editorial',
           specialNotes: null,
           status: 'rendering',
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+      customer_models: [
+        {
+          id: 'model_retry',
+          userId: 'user_retry',
+          name: 'Retry Model',
+          description: '长发模特，姿态稳定',
+          imageUrl: modelImagePath,
+          isActive: true,
           createdAt: now,
           updatedAt: now,
         },
@@ -837,7 +845,7 @@ describe('AI SDK orchestration handlers', () => {
           payload: {
             productId: 'prod_retry',
             aiGenerationTaskId: 'ai_retry',
-            scene: 'editorial',
+            scene: 'architectural-editorial',
           },
           result: scenePlan,
           referenceId: 'prod_retry',

@@ -221,7 +221,7 @@ export default function Home() {
                 </div>
                 <h3 className="text-2xl font-bold mb-3">上传产品</h3>
                 <p className="text-white/60 leading-relaxed">
-                  上传产品原图，填写拍摄需求和风格偏好
+                  上传产品原图，填写拍摄需求和目标场景
                 </p>
               </div>
             </div>

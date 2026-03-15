@@ -244,8 +244,8 @@ export default async function AdminDashboardPage() {
           <div className="flex items-center gap-3">
             <span className="text-2xl">🎨</span>
             <div>
-              <p className="font-medium text-[#4E342E]">风格模板</p>
-              <p className="text-sm text-gray-500">管理AI生成风格</p>
+              <p className="font-medium text-[#4E342E]">场景模板</p>
+              <p className="text-sm text-gray-500">管理 AI 生成场景</p>
             </div>
           </div>
         </Link>

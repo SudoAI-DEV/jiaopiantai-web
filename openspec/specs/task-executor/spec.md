@@ -55,8 +55,8 @@
 
 #### Scenario: 模特参考图与源图输入
 - **WHEN** scene render 执行
-- **THEN** worker SHALL 同时提供模特参考图与按 `sourceImageIndexes` 选出的服装源图
-- **AND** `modelImage` SHALL 仅用于锁定人物身份一致性
+- **THEN** worker SHALL 同时提供产品绑定模特图与按 `sourceImageIndexes` 选出的服装源图
+- **AND** 绑定模特图 SHALL 仅用于锁定人物身份一致性
 
 #### Scenario: 图片生成 provider 配置
 - **WHEN** `scene_render` worker 调用 AI SDK 图片模型
@@ -83,6 +83,20 @@
 - **THEN** 更新 `aiGenerationTasks` 为 completed
 - **AND** 结算积分
 - **AND** 更新产品状态为 `reviewing`
+
+### Requirement: Worker 使用产品绑定模特
+`scene_planning` 与 `scene_render` worker SHALL 以产品绑定模特为正式真源，而不是依赖临时任务字段。
+
+#### Scenario: Scene planning 读取模特描述
+- **WHEN** 产品已绑定模特
+- **THEN** `scene_planning` worker SHALL 读取该模特的图片和描述
+- **AND** 将模特信息写入 planning metadata
+
+#### Scenario: Scene render 使用绑定模特图
+- **WHEN** `scene_render` worker 渲染 scene
+- **THEN** worker SHALL 使用产品绑定模特图作为人物身份参考图
+- **AND** prompt SHALL 包含模特描述
+- **AND** 该模特 SHALL 在同一产品的所有 scene 和后续批次中保持一致
 
 ### Requirement: Recovery Worker
 Recovery worker SHALL 定期扫描超时任务并恢复或标记失败。

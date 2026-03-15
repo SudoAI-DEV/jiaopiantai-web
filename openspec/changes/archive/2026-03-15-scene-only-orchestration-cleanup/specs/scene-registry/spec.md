@@ -1,23 +1,4 @@
-## ADDED Requirements
-
-### Requirement: 场景常量定义
-`src/lib/scenes.ts` 导出 `SCENES` 常量数组，包含 4 个场景对象，每个包含 `id`、`name`、`description`、`thumbnailUrl`、`sceneRef` 字段。导出 `SceneId` 类型和 `getSceneById()` / `isValidSceneId()` 工具函数。
-
-#### Scenario: 引用场景列表
-- **WHEN** 任何模块 import `SCENES` from `src/lib/scenes.ts`
-- **THEN** 得到包含 4 个场景的只读数组，顺序为：海边艺术、自然田园、都市街拍、艺术建筑
-
-#### Scenario: 类型安全
-- **WHEN** 代码使用 `SceneId` 类型
-- **THEN** 只接受 `"seaside-art" | "country-garden" | "urban-street" | "architectural-editorial"` 四个字面量
-
-#### Scenario: 根据 ID 查询场景
-- **WHEN** 调用 `getSceneById("seaside-art")`
-- **THEN** 返回对应场景对象；传入非法 ID 时返回 `undefined`
-
-#### Scenario: 校验场景 ID
-- **WHEN** 调用 `isValidSceneId(value)`
-- **THEN** 值为合法枚举时返回 `true`，否则返回 `false`
+## MODIFIED Requirements
 
 ### Requirement: 前端场景选择改用常量
 `/products/new` 页面直接 import `SCENES` 常量渲染场景卡片，不再查询数据库，并在应用层统一使用“场景”语义。
@@ -43,13 +24,6 @@
 - **WHEN** 请求体中的场景选择为空、为自由文本，或为 `"invalid-scene"`
 - **THEN** 接口 SHALL 返回 400 错误
 - **AND** 错误信息 SHALL 提示 "无效的场景选择"
-
-### Requirement: 管理端场景页面调整
-`/admin/styles` 页面改为只读展示场景常量列表，移除数据库查询。
-
-#### Scenario: 管理员查看场景
-- **WHEN** 管理员访问 `/admin/styles`
-- **THEN** 显示 4 个场景的信息，数据来自代码常量
 
 ### Requirement: Workers 场景解析使用枚举
 `workers/src/lib/orchestration-context.ts` 的场景解析 SHALL 只接受合法场景枚举，并优先使用任务 payload 中的 `scene`；若任务 payload 缺失，再读取产品当前持久化的场景枚举。系统 SHALL NOT 使用旧别名、类目字段或自由文本猜测场景。
