@@ -181,6 +181,45 @@ export function NewProductForm({
       )}
 
       <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-[#4E342E]">产品图片</h2>
+          <span className="text-xs text-gray-500">至少1张</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {sourceImages.map((img) => (
+            <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+              <img
+                src={img.url}
+                alt="Product"
+                className="w-full h-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => removeImage(img.id)}
+                className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/50 text-white rounded-full text-xs hover:bg-black/70"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+
+          <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#FDD835] transition-colors">
+            <span className="text-2xl text-gray-400">+</span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+              disabled={uploading}
+            />
+          </label>
+        </div>
+        {uploading && <p className="text-xs text-gray-500">上传中...</p>}
+      </div>
+
+      <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
         <h2 className="text-base font-semibold text-[#4E342E]">产品信息</h2>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -245,45 +284,6 @@ export function NewProductForm({
             className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FDD835] text-sm"
           />
         </div>
-      </div>
-
-      <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-[#4E342E]">产品图片</h2>
-          <span className="text-xs text-gray-500">至少1张</span>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {sourceImages.map((img) => (
-            <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
-              <img
-                src={img.url}
-                alt="Product"
-                className="w-full h-full object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => removeImage(img.id)}
-                className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/50 text-white rounded-full text-xs hover:bg-black/70"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-
-          <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#FDD835] transition-colors">
-            <span className="text-2xl text-gray-400">+</span>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              onChange={handleFileSelect}
-              className="hidden"
-              disabled={uploading}
-            />
-          </label>
-        </div>
-        {uploading && <p className="text-xs text-gray-500">上传中...</p>}
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
@@ -353,24 +353,26 @@ export function NewProductForm({
         )}
       </div>
 
-      <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
-        <div>
-          <p className="text-xs text-gray-500">消耗点数</p>
-          <p className="text-base font-semibold text-[#4E342E]">1 点</p>
+      <div className="sticky bottom-0 bg-white border-t border-gray-100 rounded-b-xl p-3 -mx-0 space-y-2 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-gray-500">消耗点数</p>
+            <p className="text-base font-semibold text-[#4E342E]">1 点</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-gray-500">可用点数</p>
+            <p className="text-base font-semibold text-[#4E342E]">{availableCredits} 点</p>
+          </div>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-gray-500">可用点数</p>
-          <p className="text-base font-semibold text-[#4E342E]">{availableCredits} 点</p>
-        </div>
-      </div>
 
-      <Button
-        type="submit"
-        disabled={submitting || uploading || !hasSceneTemplates}
-        className="w-full py-2.5 bg-[#FDD835] text-[#4E342E] font-semibold rounded-lg hover:bg-[#FDD835]/90 disabled:opacity-50 text-sm"
-      >
-        {submitting ? "创建中..." : "创建产品"}
-      </Button>
+        <Button
+          type="submit"
+          disabled={submitting || uploading || !hasSceneTemplates}
+          className="w-full py-2.5 bg-[#FDD835] text-[#4E342E] font-semibold rounded-lg hover:bg-[#FDD835]/90 disabled:opacity-50 text-sm"
+        >
+          {submitting ? "创建中..." : "创建产品"}
+        </Button>
+      </div>
     </form>
   );
 }
