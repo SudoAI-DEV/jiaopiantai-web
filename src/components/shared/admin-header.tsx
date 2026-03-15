@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { BrandLogo } from "./brand-logo";
 
 interface AdminHeaderProps {
   user?: {
@@ -40,7 +41,12 @@ export function AdminHeader({ user }: AdminHeaderProps) {
         <div className="flex justify-between items-center h-14 sm:h-16">
           {/* Logo */}
           <Link href="/admin" className="flex items-center">
-            <span className="text-xl sm:text-2xl font-bold text-[#FDD835]">蕉片台</span>
+            <BrandLogo
+              size={36}
+              className="gap-3"
+              iconWrapperClassName="rounded-lg bg-[#FFF8E1] p-1"
+              wordmarkClassName="text-xl sm:text-2xl font-bold text-[#FDD835]"
+            />
             <span className="ml-2 px-2 py-0.5 bg-[#FDD835]/20 text-[#FDD835] text-xs rounded hidden sm:block">
               管理后台
             </span>

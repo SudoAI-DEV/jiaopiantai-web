@@ -1,13 +1,18 @@
 import Link from "next/link";
 import { RegisterForm } from "./register-form";
+import { BrandLogo } from "@/components/shared/brand-logo";
 
 export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FFF8E1]">
       <div className="w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <Link href="/" className="text-3xl font-bold text-[#4E342E]">
-            蕉片台
+          <Link href="/" className="inline-flex">
+            <BrandLogo
+              size={52}
+              className="justify-center gap-3"
+              wordmarkClassName="text-3xl font-bold text-[#4E342E]"
+            />
           </Link>
           <p className="text-[#4E342E]/70 mt-2">创建您的账号</p>
         </div>

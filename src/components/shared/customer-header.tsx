@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { BrandLogo } from "./brand-logo";
 
 interface HeaderProps {
   user?: {
@@ -39,7 +40,11 @@ export function CustomerHeader({ user }: HeaderProps) {
         <div className="flex justify-between items-center h-14 sm:h-16">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center">
-            <span className="text-xl sm:text-2xl font-bold text-[#FDD335]">蕉片台</span>
+            <BrandLogo
+              size={36}
+              className="gap-3"
+              wordmarkClassName="text-xl sm:text-2xl font-bold text-[#4E342E]"
+            />
           </Link>
 
           {/* Desktop Navigation */}

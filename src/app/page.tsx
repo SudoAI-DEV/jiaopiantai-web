@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { OptimizedImage, GridImage } from "@/components/ui/optimized-image";
+import { BrandLogo } from "@/components/shared/brand-logo";
 
 export default function Home() {
   return (
@@ -10,10 +10,12 @@ export default function Home() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#FFF8E1]/80 backdrop-blur-md border-b border-[#4E342E]/10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-[#FDD835] rounded-full flex items-center justify-center">
-              <span className="text-[#4E342E] font-bold text-xl">蕉</span>
-            </div>
-            <span className="text-[#4E342E] font-semibold text-xl tracking-tight">蕉片台</span>
+            <BrandLogo
+              size={40}
+              priority
+              className="gap-3"
+              wordmarkClassName="text-[#4E342E] text-xl font-semibold"
+            />
           </Link>
           <div className="hidden md:flex items-center gap-8">
             <a href="#process" className="text-[#4E342E]/70 hover:text-[#4E342E] transition-colors">服务流程</a>
@@ -584,10 +586,12 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-[#FDD835] rounded-full flex items-center justify-center">
-                <span className="text-[#4E342E] font-bold text-sm">蕉</span>
-              </div>
-              <span className="text-white font-semibold">蕉片台</span>
+              <BrandLogo
+                size={32}
+                className="gap-3"
+                iconWrapperClassName="rounded-lg bg-[#FFF8E1] p-1"
+                wordmarkClassName="font-semibold text-white"
+              />
             </div>
             <div className="flex items-center gap-6 text-sm">
               <a href="#" className="hover:text-white transition-colors">服务条款</a>
