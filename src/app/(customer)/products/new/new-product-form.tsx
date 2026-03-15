@@ -204,8 +204,9 @@ export function NewProductForm({
             </div>
           ))}
 
-          <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#FDD835] transition-colors">
+          <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#FDD835] transition-colors gap-1">
             <span className="text-2xl text-gray-400">+</span>
+            <span className="text-[10px] text-gray-400">可多选</span>
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
