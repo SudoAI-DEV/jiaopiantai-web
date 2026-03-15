@@ -39,6 +39,10 @@
 - **WHEN** 待分析图片引用是 worker 机器上的本地文件路径
 - **THEN** worker SHALL 直接读取本地文件供 AI SDK 使用
 
+#### Scenario: task_queue type 注释
+- **WHEN** task_queue 表的 type 字段注释列举任务类型
+- **THEN** 注释 SHALL 使用 `clothing_analysis` 而非 `style_analysis`
+
 ### Requirement: AI SDK Provider 集成
 worker SHALL 使用 `ai` + `@ai-sdk/google` 作为统一模型访问层，不再直接依赖 `@google/genai` 做主流程编排。
 

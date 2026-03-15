@@ -45,11 +45,42 @@
 - **AND** 错误信息 SHALL 提示 "无效的场景选择"
 
 ### Requirement: 管理端场景页面调整
-`/admin/styles` 页面改为只读展示场景常量列表，移除数据库查询。
+
+### Requirement: 数据库 schema 使用场景术语
+Drizzle ORM schema 中所有与场景相关的字段名和表名 SHALL 使用 "scene" 术语，而不是 "style"。
+
+#### Scenario: products 表字段
+- **WHEN** 访问 products 表的场景相关字段
+- **THEN** Drizzle 字段名 SHALL 为 `scenePreference`（映射 DB 列 `scene_preference`）和 `selectedSceneId`（映射 DB 列 `selected_scene_id`）
+- **AND** 旧字段名 `stylePreference` 和 `selectedStyleId` SHALL NOT 存在于 schema 导出中
+
+#### Scenario: ai_generation_tasks 表字段
+- **WHEN** 访问 ai_generation_tasks 表的场景字段
+- **THEN** Drizzle 字段名 SHALL 为 `sceneId`（映射 DB 列 `scene_id`）
+- **AND** 旧字段名 `styleId` SHALL NOT 存在于 schema 导出中
+
+#### Scenario: 废弃表重命名
+- **WHEN** 引用废弃的场景模板表
+- **THEN** Drizzle 导出名 SHALL 为 `sceneTemplates`（映射 DB 表 `scene_templates`），类型为 `SceneTemplate`
+- **AND** 导出名 `styleTemplates` 和类型 `StyleTemplate` SHALL NOT 存在
+
+#### Scenario: 场景选择表重命名
+- **WHEN** 引用产品场景选择表
+- **THEN** Drizzle 导出名 SHALL 为 `productSceneSelections`（映射 DB 表 `product_scene_selections`），其字段 `sceneId`（映射 DB 列 `scene_id`）
+- **AND** 导出名 `productStyleSelections` 和字段 `styleId` SHALL NOT 存在
+
+### Requirement: 管理端场景页面调整
+`/admin/scenes` 页面改为只读展示场景常量列表，移除数据库查询。
 
 #### Scenario: 管理员查看场景
-- **WHEN** 管理员访问 `/admin/styles`
+- **WHEN** 管理员访问 `/admin/scenes`
 - **THEN** 显示 4 个场景的信息，数据来自代码常量
+
+#### Scenario: 导航标签使用场景术语
+- **WHEN** 管理后台导航渲染场景管理入口
+- **THEN** 链接地址 SHALL 为 `/admin/scenes`
+- **AND** 标签文案 SHALL 为 "场景模板"
+- **AND** `/admin/styles` 路由 SHALL NOT 存在
 
 ### Requirement: Workers 场景解析使用枚举
 `workers/src/lib/orchestration-context.ts` 的场景解析 SHALL 只接受合法场景枚举，并优先使用任务 payload 中的 `scene`；若任务 payload 缺失，再读取产品当前持久化的场景枚举。系统 SHALL NOT 使用旧别名、类目字段或自由文本猜测场景。

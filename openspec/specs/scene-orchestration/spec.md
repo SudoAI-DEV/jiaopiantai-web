@@ -33,8 +33,9 @@ worker 上下文 SHALL 只从正式记录中装载产品、源图、绑定模特
 - **AND** 系统 SHALL NOT 读取 `modelImage` 作为回退
 
 #### Scenario: 上下文装载场景
-- **WHEN** 任务 payload 中带有 `scene`
-- **THEN** 系统 SHALL 使用该场景枚举值
+- **WHEN** `loadOrchestrationContext()` 装载产品场景
+- **THEN** `resolveScene()` SHALL 读取 `product.selectedSceneId` 和 `product.scenePreference`
+- **AND** SHALL NOT 引用 `product.selectedStyleId` 或 `product.stylePreference`
 - **AND** 系统 SHALL NOT 从 `category`、中文旧别名或任意自由文本推断场景
 
 ### Requirement: 场景编排和渲染使用场景术语
@@ -64,3 +65,17 @@ worker 上下文 SHALL 只从正式记录中装载产品、源图、绑定模特
 - **WHEN** `scene_render` 成功生成图片并上传到 R2
 - **THEN** 系统 SHALL 写入 `productGeneratedImages`
 - **AND** 新图片的 `reviewStatus` SHALL 为 `pending`
+
+### Requirement: 测试数据使用场景字段名
+
+Workers 测试文件中的产品 mock 数据 SHALL 使用 `scenePreference` 和 `selectedSceneId` 字段名。
+
+#### Scenario: orchestration 测试数据
+- **WHEN** orchestration.test.ts 构造产品 mock 对象
+- **THEN** 产品对象 SHALL 使用 `scenePreference` 和 `selectedSceneId` 字段
+- **AND** SHALL NOT 使用 `stylePreference` 或 `selectedStyleId`
+
+#### Scenario: credit-flow 测试数据
+- **WHEN** credit-flow.test.ts 构造产品 mock 对象
+- **THEN** 产品对象 SHALL 使用 `scenePreference` 和 `selectedSceneId` 字段
+- **AND** SHALL NOT 使用 `stylePreference` 或 `selectedStyleId`
