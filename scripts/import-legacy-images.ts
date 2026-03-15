@@ -101,6 +101,7 @@ function parseArgs(): {
   baseDir: string;
   dryRun: boolean;
   batchFilter: string | null;
+  productFilter: Set<string> | null;
 } {
   const args = process.argv.slice(2);
   let userId = "";
@@ -108,6 +109,7 @@ function parseArgs(): {
   let baseDir = "客户/花姐&寅寅";
   let dryRun = false;
   let batchFilter: string | null = null;
+  let productFilter: Set<string> | null = null;
 
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -131,6 +133,9 @@ function parseArgs(): {
       case "--batch-filter":
         batchFilter = args[++i];
         break;
+      case "--product-filter":
+        productFilter = new Set(args[++i].split(",").map((s) => s.trim()));
+        break;
       default:
         console.error(`Unknown argument: ${args[i]}`);
         process.exit(1);
@@ -140,12 +145,12 @@ function parseArgs(): {
   if (!userId) {
     console.error("Error: --user-id is required");
     console.error(
-      "Usage: npx tsx scripts/import-legacy-images.ts --user-id <id> --env <local|production> [--base-dir <path>] [--dry-run] [--batch-filter <name>]"
+      "Usage: npx tsx scripts/import-legacy-images.ts --user-id <id> --env <local|production> [--base-dir <path>] [--dry-run] [--batch-filter <name>] [--product-filter <num1,num2,...>]"
     );
     process.exit(1);
   }
 
-  return { userId, env, baseDir, dryRun, batchFilter };
+  return { userId, env, baseDir, dryRun, batchFilter, productFilter };
 }
 
 // --------------- Metadata File Helpers ---------------
@@ -300,7 +305,8 @@ function shouldSkipFile(fileName: string): boolean {
 
 function scanDirectory(
   baseDir: string,
-  batchFilter: string | null
+  batchFilter: string | null,
+  productFilter: Set<string> | null,
 ): ParsedProduct[] {
   const absoluteBase = path.resolve(baseDir);
   const products: ParsedProduct[] = [];
@@ -343,6 +349,10 @@ function scanDirectory(
         const { productNumber, statusNote } = parseProductDirName(
           productDir.name
         );
+
+        // Apply product filter if specified
+        if (productFilter && !productFilter.has(productNumber)) continue;
+
         const productPath = path.join(stylePath, productDir.name);
 
         // Collect source images (root-level jpg files)
@@ -878,14 +888,15 @@ async function importProducts(
 // --------------- Main ---------------
 
 async function main() {
-  const { userId, env, baseDir, dryRun, batchFilter } = parseArgs();
+  const { userId, env, baseDir, dryRun, batchFilter, productFilter } = parseArgs();
 
   console.log("🚀 Legacy Image Import Script");
-  console.log(`  Environment: ${env}`);
-  console.log(`  User ID:      ${userId}`);
-  console.log(`  Base Dir:     ${baseDir}`);
-  console.log(`  Dry Run:      ${dryRun}`);
-  console.log(`  Batch Filter: ${batchFilter || "(all)"}`);
+  console.log(`  Environment:    ${env}`);
+  console.log(`  User ID:        ${userId}`);
+  console.log(`  Base Dir:       ${baseDir}`);
+  console.log(`  Dry Run:        ${dryRun}`);
+  console.log(`  Batch Filter:   ${batchFilter || "(all)"}`);
+  console.log(`  Product Filter: ${productFilter ? [...productFilter].join(", ") : "(all)"}`);
 
   // Load existing metadata for re-runs
   const metadata = loadMetadata(env, userId);
@@ -895,7 +906,7 @@ async function main() {
 
   // Scan directory
   console.log("\n📂 Scanning directory structure...");
-  const products = scanDirectory(baseDir, batchFilter);
+  const products = scanDirectory(baseDir, batchFilter, productFilter);
   console.log(`  Found ${products.length} products`);
 
   if (products.length === 0) {
