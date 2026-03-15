@@ -23,20 +23,10 @@ import {
 } from "lucide-react";
 
 export const REJECTION_REASONS = [
-  { id: "crop_issue", label: "裁切问题" },
-  { id: "unnatural_model", label: "模特不自然" },
-  { id: "texture_mismatch", label: "纹路偏差" },
-  { id: "color_deviation", label: "颜色偏差" },
-  { id: "bad_background", label: "背景不合适" },
-  { id: "distortion", label: "变形/畸变" },
-  { id: "low_resolution", label: "分辨率低" },
-  { id: "unnatural_lighting", label: "光影不自然" },
-  { id: "wrong_pose", label: "姿势不当" },
-  { id: "accessory_error", label: "配饰错误" },
-  { id: "fabric_error", label: "面料质感错误" },
-  { id: "detail_missing", label: "细节丢失（纽扣/拉链/口袋等）" },
-  { id: "proportion_issue", label: "比例失调" },
-  { id: "watermark_artifact", label: "水印/伪影" },
+  { id: "wrong_pattern", label: "版型不对" },
+  { id: "fake_scene", label: "场景太假" },
+  { id: "dark_lighting", label: "光线太暗" },
+  { id: "stiff_pose", label: "姿势呆板" },
 ] as const;
 
 interface GeneratedImage {
