@@ -28,6 +28,7 @@ const MAX_CONCURRENCY = 10;
 interface RenderScene {
   id: number;
   shot_name?: string;
+  framing?: string;
   full_prompt: string;
   source_image_indexes?: number[];
   render_goal?: string;
@@ -57,9 +58,20 @@ function formatConstraintBlock(title: string, values?: string[]): string {
   return [`【${title}】`, ...values.map((value) => `- ${value}`)].join("\n");
 }
 
+function framingConstraint(framing?: string): string {
+  if (framing === "full_body") {
+    return "【构图硬性要求】全身构图必须完整呈现模特从头顶到脚底的全部身体，头顶上方必须留有空间，严禁裁切头部、额头或脚部。";
+  }
+  if (framing === "close_up") {
+    return "【构图硬性要求】近景构图需确保取景范围内的身体部位完整呈现，不得意外裁切关键细节区域。";
+  }
+  return "";
+}
+
 function buildScenePrompt(scene: RenderScene): string {
   const blocks = [
     scene.full_prompt.trim(),
+    framingConstraint(scene.framing),
     scene.render_goal
       ? `【本次出图目标】${scene.render_goal === "validation"
           ? "当前镜头优先验证服装结构是否正确，先确保关键结构无误，再追求场景氛围。"
