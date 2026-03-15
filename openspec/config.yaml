@@ -1,13 +1,11 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Tech stack: TypeScript, Next.js, React, Node.js, Drizzle ORM, PostgreSQL.
+  Domain: e-commerce AI product image generation platform.
+  Environment:
+  - Local development line test DB host/IP: 192.168.88.88
+  - Use this environment detail when planning or validating DB-related changes in OpenSpec artifacts.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
@@ -18,3 +16,5 @@ schema: spec-driven
 #       - Always include a "Non-goals" section
 #     tasks:
 #       - Break tasks into chunks of max 2 hours
+#     general:
+#       - 禁止使用 db:push，必须使用 db:migrate
