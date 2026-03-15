@@ -8,6 +8,34 @@
       "when": 1773384142858,
       "tag": "0000_broad_wendell_rand",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1773506251269,
+      "tag": "0001_aromatic_thing",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773512408261,
+      "tag": "0002_amused_fenris",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1773543429313,
+      "tag": "0003_add-rejection-reason",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1773545000000,
+      "tag": "0004_add-products-batch-number",
+      "breakpoints": true
     }
   ]
 }

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { userProfiles, products, productSourceImages, productGeneratedImages } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
 import Image from "next/image";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 import { ReviewActions } from "./review-actions";
 import { ReviewClient } from "./review-client";
 
@@ -110,7 +111,6 @@ export default async function ProductReviewPage({
   const { product, user, sourceImages, generatedImages } = data;
 
   const approvedImages = generatedImages.filter((img) => img.reviewStatus === "approved");
-  const canDeliver = approvedImages.length >= (product.deliveryCount || 0);
 
   return (
     <div className="space-y-6">
@@ -137,8 +137,8 @@ export default async function ProductReviewPage({
           </p>
         </div>
 
-        {/* Deliver Button */}
-        {canDeliver && product.status === "reviewing" && (
+        {/* Review Actions - show when there's at least 1 approved image and status is reviewing */}
+        {approvedImages.length > 0 && (product.status === "reviewing" || product.status === "client_reviewing") && (
           <ReviewActions
             productId={product.id}
             productStatus={product.status || "draft"}
@@ -183,7 +183,7 @@ export default async function ProductReviewPage({
                 key={img.id}
                 className="aspect-square relative rounded-lg overflow-hidden bg-gray-100"
               >
-                <Image
+                <OptimizedImage
                   src={img.url}
                   alt={img.fileName || ""}
                   fill
@@ -199,6 +199,11 @@ export default async function ProductReviewPage({
       <ReviewClient
         productId={product.id}
         generatedImages={generatedImages as any}
+        sourceImages={sourceImages.map((img) => ({
+          id: img.id,
+          url: img.url,
+          fileName: img.fileName,
+        }))}
         productStatus={product.status || "draft"}
         deliveryCount={product.deliveryCount || 0}
         approvedCount={approvedImages.length}

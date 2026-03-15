@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, timestamp, varchar, jsonb, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, boolean, timestamp, varchar, jsonb, primaryKey, index } from 'drizzle-orm/pg-core';
 
 // Users table - Better Auth compatible
 export const users = pgTable('users', {
@@ -97,6 +97,9 @@ export const products = pgTable('products', {
   stylePreference: text('style_preference'),
   specialNotes: text('special_notes'),
   selectedStyleId: varchar('selected_style_id', { length: 50 }),
+  batchNumber: integer('batch_number'),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  reviewedBy: varchar("reviewed_by", { length: 50 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
 });
@@ -114,6 +117,8 @@ export const productSourceImages = pgTable('product_source_images', {
   mimeType: varchar('mime_type', { length: 100 }),
   sortOrder: integer("sort_order").default(0),
   batchNumber: integer("batch_number"),
+  analysis: jsonb('analysis'),
+  analyzedAt: timestamp('analyzed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
 
@@ -123,6 +128,7 @@ export type ProductSourceImage = typeof productSourceImages.$inferSelect;
 export const productGeneratedImages = pgTable('product_generated_images', {
   id: varchar('id', { length: 50 }).primaryKey(),
   productId: varchar('product_id', { length: 50 }).notNull(),
+  generationTaskId: varchar('generation_task_id', { length: 50 }),
   url: text('url').notNull(),
   thumbnailUrl: text('thumbnail_url'),
   fileName: varchar('file_name', { length: 255 }),
@@ -132,6 +138,7 @@ export const productGeneratedImages = pgTable('product_generated_images', {
   reviewStatus: varchar('review_status', { length: 20 }).default('pending'),
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   reviewedBy: varchar("reviewed_by", { length: 50 }),
+  rejectionReason: text('rejection_reason'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
 
@@ -220,3 +227,44 @@ export const operationLogs = pgTable('operation_logs', {
   ipAddress: varchar('ip_address', { length: 50 }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
+
+// Task queue - generic task queue for worker processing
+export const taskQueue = pgTable('task_queue', {
+  id: varchar('id', { length: 50 }).primaryKey(),
+  type: varchar('type', { length: 50 }).notNull(), // style_analysis, image_generation, etc.
+  status: varchar('status', { length: 20 }).default('pending').notNull(), // pending, processing, completed, failed, cancelled
+  priority: integer('priority').default(10).notNull(),
+  payload: jsonb('payload'), // task-specific input data
+  result: jsonb('result'), // task execution result
+  referenceId: varchar('reference_id', { length: 50 }), // associated business ID
+  referenceType: varchar('reference_type', { length: 50 }), // product, ai_generation_task, etc.
+  attemptCount: integer('attempt_count').default(0).notNull(),
+  maxAttempts: integer('max_attempts').default(3).notNull(),
+  errorMessage: text('error_message'),
+  failureType: varchar('failure_type', { length: 20 }), // retryable, permanent
+  lockedAt: timestamp('locked_at', { withTimezone: true }),
+  lockedBy: varchar('locked_by', { length: 100 }),
+  availableAt: timestamp('available_at', { withTimezone: true }).notNull(),
+  startedAt: timestamp('started_at', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+}, (table) => ({
+  claimIdx: index('task_queue_claim_idx').on(
+    table.type,
+    table.status,
+    table.availableAt,
+    table.priority,
+    table.createdAt
+  ),
+  referenceIdx: index('task_queue_reference_idx').on(
+    table.referenceId,
+    table.referenceType
+  ),
+  recoveryIdx: index('task_queue_recovery_idx').on(
+    table.status,
+    table.lockedAt
+  ),
+}));
+
+export type TaskQueueItem = typeof taskQueue.$inferSelect;
+export type NewTaskQueueItem = typeof taskQueue.$inferInsert;

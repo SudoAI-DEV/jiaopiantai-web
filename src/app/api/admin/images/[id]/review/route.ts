@@ -26,7 +26,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { status } = body;
+    const { status, rejectionReason } = body;
 
     if (!["pending", "approved", "rejected", "regenerate"].includes(status)) {
       return NextResponse.json({ error: "无效的审核状态" }, { status: 400 });
@@ -48,6 +48,9 @@ export async function PATCH(
         reviewStatus: status,
         reviewedAt: new Date(),
         reviewedBy: session.user.id,
+        rejectionReason: status === "rejected" && rejectionReason
+          ? (typeof rejectionReason === "string" ? rejectionReason : JSON.stringify(rejectionReason))
+          : null,
       })
       .where(eq(productGeneratedImages.id, imageId));
 

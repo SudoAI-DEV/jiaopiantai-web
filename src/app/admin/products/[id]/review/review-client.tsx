@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { OptimizedImage, GridImage } from "@/components/ui/optimized-image";
+import { ImageReviewModal } from "@/components/review/image-review-modal";
 
 interface GeneratedImage {
   id: string;
@@ -11,9 +12,16 @@ interface GeneratedImage {
   reviewStatus: string;
 }
 
+interface SourceImage {
+  id: string;
+  url: string;
+  fileName?: string | null;
+}
+
 interface ReviewClientProps {
   productId: string;
   generatedImages: GeneratedImage[];
+  sourceImages: SourceImage[];
   productStatus: string;
   deliveryCount: number;
   approvedCount: number;
@@ -36,6 +44,7 @@ const reviewStatusColors: Record<string, string> = {
 export function ReviewClient({
   productId,
   generatedImages: initialImages,
+  sourceImages,
   productStatus,
   deliveryCount,
   approvedCount: initialApprovedCount,
@@ -44,6 +53,8 @@ export function ReviewClient({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState<string | null>(null);
   const [actionType, setActionType] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalInitialIndex, setModalInitialIndex] = useState(0);
 
   const isEditable = ["submitted", "queued", "processing", "reviewing"].includes(productStatus);
 
@@ -147,6 +158,29 @@ export function ReviewClient({
     }
   };
 
+  const openImageModal = (index: number) => {
+    setModalInitialIndex(index);
+    setModalOpen(true);
+  };
+
+  const handleModalReview = async (
+    imageId: string,
+    status: string,
+    rejectionReason?: { presets: string[]; custom: string }
+  ) => {
+    const res = await fetch(`/api/admin/images/${imageId}/review`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, rejectionReason }),
+    });
+    if (!res.ok) throw new Error("审核失败");
+    setImages((prev) =>
+      prev.map((img) =>
+        img.id === imageId ? { ...img, reviewStatus: status } : img
+      )
+    );
+  };
+
   const pendingImages = images.filter((img) => img.reviewStatus === "pending");
   const approvedImages = images.filter((img) => img.reviewStatus === "approved");
   const rejectedImages = images.filter((img) => img.reviewStatus === "rejected");
@@ -246,16 +280,17 @@ export function ReviewClient({
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {images.map((img) => (
+          {images.map((img, index) => (
             <div
               key={img.id}
-              className={`relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 group ${
+              className={`relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-100 group cursor-pointer ${
                 img.reviewStatus === "approved"
                   ? "ring-2 ring-green-500"
                   : img.reviewStatus === "rejected"
                   ? "opacity-60"
                   : ""
               } ${selectedIds.has(img.id) ? "ring-2 ring-[#FDD835]" : ""}`}
+              onClick={() => openImageModal(index)}
             >
               <OptimizedImage
                 src={img.url}
@@ -378,6 +413,16 @@ export function ReviewClient({
           </div>
         </div>
       </div>
+
+      {/* Image Review Modal */}
+      <ImageReviewModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        generatedImages={images}
+        sourceImages={sourceImages}
+        initialIndex={modalInitialIndex}
+        onReview={handleModalReview}
+      />
     </div>
   );
 }
