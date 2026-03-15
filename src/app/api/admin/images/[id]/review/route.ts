@@ -70,7 +70,7 @@ export async function PATCH(
     }
 
     if (
-      requiresRejectionReasonForCorrection(image.reviewStatus, status) &&
+      requiresRejectionReasonForCorrection(image.reviewStatus || "", status) &&
       !hasRejectionReason(rejectionReason)
     ) {
       return NextResponse.json(
