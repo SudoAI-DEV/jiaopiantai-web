@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { OptimizedImage, GridImage } from "@/components/ui/optimized-image";
+import { OptimizedImage } from "@/components/ui/optimized-image";
 import { ImageReviewModal } from "@/components/review/image-review-modal";
 
 interface GeneratedImage {
@@ -42,12 +42,10 @@ const reviewStatusColors: Record<string, string> = {
 };
 
 export function ReviewClient({
-  productId,
   generatedImages: initialImages,
   sourceImages,
   productStatus,
   deliveryCount,
-  approvedCount: initialApprovedCount,
 }: ReviewClientProps) {
   const [images, setImages] = useState(initialImages);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -179,6 +177,11 @@ export function ReviewClient({
         img.id === imageId ? { ...img, reviewStatus: status } : img
       )
     );
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(imageId);
+      return next;
+    });
   };
 
   const pendingImages = images.filter((img) => img.reviewStatus === "pending");

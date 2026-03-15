@@ -2,7 +2,35 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth-utils";
 import { db } from "@/lib/db";
 import { productGeneratedImages, products, userProfiles } from "@/lib/db/schema";
+import { requiresRejectionReasonForCorrection } from "@/components/review/review-flow";
 import { eq } from "drizzle-orm";
+
+function hasRejectionReason(value: unknown): boolean {
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const rejectionReason = value as {
+    presets?: unknown;
+    custom?: unknown;
+  };
+
+  const presets = Array.isArray(rejectionReason.presets)
+    ? rejectionReason.presets.filter(
+        (item): item is string => typeof item === "string" && item.trim().length > 0
+      )
+    : [];
+  const custom =
+    typeof rejectionReason.custom === "string"
+      ? rejectionReason.custom.trim()
+      : "";
+
+  return presets.length > 0 || custom.length > 0;
+}
 
 export async function PATCH(
   request: Request,
@@ -39,6 +67,16 @@ export async function PATCH(
 
     if (!image) {
       return NextResponse.json({ error: "图片不存在" }, { status: 404 });
+    }
+
+    if (
+      requiresRejectionReasonForCorrection(image.reviewStatus, status) &&
+      !hasRejectionReason(rejectionReason)
+    ) {
+      return NextResponse.json(
+        { error: "改为驳回时必须提供驳回理由" },
+        { status: 400 }
+      );
     }
 
     // Update image review status

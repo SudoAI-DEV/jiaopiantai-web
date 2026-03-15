@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +17,15 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useImageZoom } from "./use-image-zoom";
+import {
+  canApproveImage,
+  canRegenerateImage,
+  canRejectImage,
+  getAdjacentSourceIndex,
+  getNextPendingIndex,
+  shouldAutoAdvanceAfterReview,
+  shouldShowAllDoneAfterReview,
+} from "./review-flow";
 import {
   ChevronLeft,
   ChevronRight,
@@ -48,7 +64,11 @@ interface ImageReviewModalProps {
   generatedImages: GeneratedImage[];
   sourceImages: SourceImage[];
   initialIndex: number;
-  onReview: (imageId: string, status: string, rejectionReason?: { presets: string[]; custom: string }) => Promise<void>;
+  onReview: (
+    imageId: string,
+    status: string,
+    rejectionReason?: { presets: string[]; custom: string }
+  ) => Promise<void>;
 }
 
 const reviewStatusLabels: Record<string, string> = {
@@ -77,35 +97,163 @@ export function ImageReviewModal({
   const [showRejectPanel, setShowRejectPanel] = useState(false);
   const [selectedReasons, setSelectedReasons] = useState<Set<string>>(new Set());
   const [customReason, setCustomReason] = useState("");
+  const [rejectError, setRejectError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [allDone, setAllDone] = useState(false);
-  const [sourcePreviewUrl, setSourcePreviewUrl] = useState<string | null>(null);
-  const customInputRef = useRef<HTMLTextAreaElement>(null);
+  const [sourcePreviewIndex, setSourcePreviewIndex] = useState<number | null>(null);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const dialogContentRef = useRef<HTMLDivElement>(null);
+  const sourcePreviewContainerRef = useRef<HTMLDivElement>(null);
+  const customInputRef = useRef<HTMLTextAreaElement>(null);
+  const closeTimerRef = useRef<number | null>(null);
 
   const mainZoom = useImageZoom();
   const sourceZoom = useImageZoom();
 
   const currentImage = generatedImages[currentIndex];
   const pendingCount = generatedImages.filter((img) => img.reviewStatus === "pending").length;
-  const isPending = currentImage?.reviewStatus === "pending";
+  const currentSourcePreview =
+    sourcePreviewIndex !== null ? sourceImages[sourcePreviewIndex] ?? null : null;
+  const canApproveCurrent = currentImage ? canApproveImage(currentImage.reviewStatus) : false;
+  const canRejectCurrent = currentImage ? canRejectImage(currentImage.reviewStatus) : false;
+  const canRegenerateCurrent = currentImage
+    ? canRegenerateImage(currentImage.reviewStatus)
+    : false;
+  const canSubmitReject = selectedReasons.size > 0 || customReason.trim().length > 0;
 
-  // Reset state when modal opens or image changes
-  useEffect(() => {
-    setCurrentIndex(initialIndex);
-    setShowRejectPanel(false);
+  const resetRejectForm = useCallback(() => {
     setSelectedReasons(new Set());
     setCustomReason("");
+    setRejectError(null);
+    setIsInputFocused(false);
+  }, []);
+
+  const clearCloseTimer = useCallback(() => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  const focusModal = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      dialogContentRef.current?.focus();
+    });
+  }, []);
+
+  const closeRejectPanel = useCallback(() => {
+    setShowRejectPanel(false);
+    resetRejectForm();
+    customInputRef.current?.blur();
+    focusModal();
+  }, [focusModal, resetRejectForm]);
+
+  const openRejectPanel = useCallback(() => {
+    if (!currentImage || !canRejectImage(currentImage.reviewStatus)) {
+      return;
+    }
+
+    resetRejectForm();
+    setShowRejectPanel(true);
+  }, [currentImage, resetRejectForm]);
+
+  const closeSourcePreview = useCallback(() => {
+    setSourcePreviewIndex(null);
+    focusModal();
+  }, [focusModal]);
+
+  const openSourcePreview = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= sourceImages.length) {
+        return;
+      }
+
+      const activeElement = document.activeElement;
+      if (activeElement instanceof HTMLElement) {
+        activeElement.blur();
+      }
+
+      setSourcePreviewIndex(index);
+    },
+    [sourceImages.length]
+  );
+
+  const goToAdjacentSource = useCallback(
+    (direction: "prev" | "next") => {
+      setSourcePreviewIndex((prev) => {
+        if (prev === null) {
+          return prev;
+        }
+
+        return getAdjacentSourceIndex(prev, sourceImages.length, direction);
+      });
+    },
+    [sourceImages.length]
+  );
+
+  const completePendingReview = useCallback(
+    (reviewedImageId: string, previousStatus: string) => {
+      if (!shouldAutoAdvanceAfterReview(previousStatus)) {
+        return;
+      }
+
+      const remainingPendingCount = generatedImages.filter(
+        (img) => img.reviewStatus === "pending" && img.id !== reviewedImageId
+      ).length;
+
+      if (shouldShowAllDoneAfterReview(previousStatus, remainingPendingCount)) {
+        setAllDone(true);
+        clearCloseTimer();
+        closeTimerRef.current = window.setTimeout(() => {
+          onOpenChange(false);
+        }, 2000);
+        return;
+      }
+
+      const nextPendingIndex = getNextPendingIndex(generatedImages, currentIndex);
+      if (nextPendingIndex !== null) {
+        setCurrentIndex(nextPendingIndex);
+      }
+    },
+    [clearCloseTimer, currentIndex, generatedImages, onOpenChange]
+  );
+
+  useEffect(() => {
+    clearCloseTimer();
+    setCurrentIndex(initialIndex);
+    closeRejectPanel();
+    closeSourcePreview();
     setAllDone(false);
-  }, [initialIndex, open]);
+    focusModal();
+  }, [clearCloseTimer, closeRejectPanel, closeSourcePreview, focusModal, initialIndex, open]);
 
   useEffect(() => {
     mainZoom.reset();
-    setShowRejectPanel(false);
-    setSelectedReasons(new Set());
-    setCustomReason("");
+    closeRejectPanel();
+    closeSourcePreview();
+    setAllDone(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mainZoom.reset is stable
-  }, [currentIndex]);
+  }, [closeRejectPanel, closeSourcePreview, currentIndex]);
+
+  useLayoutEffect(() => {
+    if (sourcePreviewIndex !== null) {
+      sourceZoom.reset();
+      sourcePreviewContainerRef.current?.focus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sourceZoom.reset is stable
+  }, [sourcePreviewIndex]);
+
+  useEffect(() => {
+    if (open && sourcePreviewIndex === null && !showRejectPanel && !isInputFocused) {
+      focusModal();
+    }
+  }, [focusModal, isInputFocused, open, showRejectPanel, sourcePreviewIndex]);
+
+  useEffect(() => {
+    return () => {
+      clearCloseTimer();
+    };
+  }, [clearCloseTimer]);
 
   const goToNext = useCallback(() => {
     if (currentIndex < generatedImages.length - 1) {
@@ -119,109 +267,116 @@ export function ImageReviewModal({
     }
   }, [currentIndex]);
 
-  const goToNextPending = useCallback(() => {
-    // Find next pending image after current
-    for (let i = currentIndex + 1; i < generatedImages.length; i++) {
-      if (generatedImages[i].reviewStatus === "pending") {
-        setCurrentIndex(i);
-        return true;
-      }
-    }
-    // Wrap around to start
-    for (let i = 0; i < currentIndex; i++) {
-      if (generatedImages[i].reviewStatus === "pending") {
-        setCurrentIndex(i);
-        return true;
-      }
-    }
-    return false;
-  }, [currentIndex, generatedImages]);
-
   const handleApprove = useCallback(async () => {
-    if (!currentImage || loading || !isPending) return;
+    if (!currentImage || loading || !canApproveCurrent) {
+      return;
+    }
+
+    const previousStatus = currentImage.reviewStatus;
     setLoading(true);
+
     try {
       await onReview(currentImage.id, "approved");
-      // Check if there are more pending
-      const remainingPending = generatedImages.filter(
-        (img) => img.reviewStatus === "pending" && img.id !== currentImage.id
-      ).length;
-      if (remainingPending === 0) {
-        setAllDone(true);
-        setTimeout(() => onOpenChange(false), 2000);
-      } else {
-        goToNextPending();
-      }
+      completePendingReview(currentImage.id, previousStatus);
     } finally {
       setLoading(false);
     }
-  }, [currentImage, loading, isPending, onReview, generatedImages, goToNextPending, onOpenChange]);
+  }, [canApproveCurrent, completePendingReview, currentImage, loading, onReview]);
 
   const handleRegenerate = useCallback(async () => {
-    if (!currentImage || loading || !isPending) return;
+    if (!currentImage || loading || !canRegenerateCurrent) {
+      return;
+    }
+
+    const previousStatus = currentImage.reviewStatus;
     setLoading(true);
+
     try {
       await onReview(currentImage.id, "regenerate");
-      const remainingPending = generatedImages.filter(
-        (img) => img.reviewStatus === "pending" && img.id !== currentImage.id
-      ).length;
-      if (remainingPending === 0) {
-        setAllDone(true);
-        setTimeout(() => onOpenChange(false), 2000);
-      } else {
-        goToNextPending();
-      }
+      completePendingReview(currentImage.id, previousStatus);
     } finally {
       setLoading(false);
     }
-  }, [currentImage, loading, isPending, onReview, generatedImages, goToNextPending, onOpenChange]);
+  }, [canRegenerateCurrent, completePendingReview, currentImage, loading, onReview]);
 
   const handleReject = useCallback(async () => {
-    if (!currentImage || loading) return;
-    if (selectedReasons.size === 0 && !customReason.trim()) return;
+    if (!currentImage || loading || !canRejectCurrent) {
+      return;
+    }
 
+    if (!canSubmitReject) {
+      setRejectError("请选择或填写驳回理由");
+      return;
+    }
+
+    const previousStatus = currentImage.reviewStatus;
     setLoading(true);
+    setRejectError(null);
+
     try {
       await onReview(currentImage.id, "rejected", {
         presets: Array.from(selectedReasons),
         custom: customReason.trim(),
       });
-      const remainingPending = generatedImages.filter(
-        (img) => img.reviewStatus === "pending" && img.id !== currentImage.id
-      ).length;
-      if (remainingPending === 0) {
-        setAllDone(true);
-        setTimeout(() => onOpenChange(false), 2000);
-      } else {
-        goToNextPending();
-      }
+      closeRejectPanel();
+      completePendingReview(currentImage.id, previousStatus);
     } finally {
       setLoading(false);
     }
-  }, [currentImage, loading, selectedReasons, customReason, onReview, generatedImages, goToNextPending, onOpenChange]);
+  }, [
+    canRejectCurrent,
+    canSubmitReject,
+    closeRejectPanel,
+    completePendingReview,
+    currentImage,
+    customReason,
+    loading,
+    onReview,
+    selectedReasons,
+  ]);
 
-  const toggleReason = (id: string) => {
+  const toggleReason = useCallback((id: string) => {
     setSelectedReasons((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
-  };
+    setRejectError(null);
+  }, []);
 
-  const canReject = selectedReasons.size > 0 || customReason.trim().length > 0;
+  const handleShortcutKeyDown = useCallback(
+    (e: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (sourcePreviewIndex !== null) {
+        switch (e.key) {
+          case "ArrowUp":
+            e.preventDefault();
+            e.stopPropagation();
+            goToAdjacentSource("prev");
+            break;
+          case "ArrowDown":
+            e.preventDefault();
+            e.stopPropagation();
+            goToAdjacentSource("next");
+            break;
+          case "Escape":
+            e.preventDefault();
+            e.stopPropagation();
+            closeSourcePreview();
+            break;
+          default:
+            break;
+        }
+        return;
+      }
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    if (!open) return;
-
-    const handler = (e: KeyboardEvent) => {
-      // Don't handle shortcuts when input is focused (except navigation/zoom)
       if (isInputFocused) {
         if (e.key === "Escape") {
           e.preventDefault();
-          setShowRejectPanel(false);
-          customInputRef.current?.blur();
+          closeRejectPanel();
         }
         return;
       }
@@ -230,16 +385,16 @@ export function ImageReviewModal({
         case "a":
         case "A":
         case "Enter":
-          if (!showRejectPanel) {
+          if (!showRejectPanel && canApproveCurrent) {
             e.preventDefault();
             handleApprove();
           }
           break;
         case "r":
         case "R":
-          if (!showRejectPanel) {
+          if (!showRejectPanel && canRejectCurrent) {
             e.preventDefault();
-            setShowRejectPanel(true);
+            openRejectPanel();
           }
           break;
         case "ArrowLeft":
@@ -267,27 +422,51 @@ export function ImageReviewModal({
           if (showRejectPanel) {
             e.preventDefault();
             e.stopPropagation();
-            setShowRejectPanel(false);
+            closeRejectPanel();
           }
           break;
+        default:
+          break;
       }
-    };
+    },
+    [
+    canApproveCurrent,
+    canRejectCurrent,
+    closeRejectPanel,
+    closeSourcePreview,
+    goToAdjacentSource,
+    goToNext,
+    goToPrev,
+    handleApprove,
+    isInputFocused,
+    mainZoom,
+    openRejectPanel,
+    showRejectPanel,
+    sourcePreviewIndex,
+  ]);
 
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, isInputFocused, showRejectPanel, handleApprove, goToPrev, goToNext, mainZoom]);
-
-  if (!currentImage) return null;
+  if (!currentImage) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-w-[95vw] max-h-[95vh] w-[95vw] h-[95vh] p-0 flex flex-col overflow-hidden bg-gray-950 border-gray-800"
+        ref={dialogContentRef}
+        tabIndex={-1}
+        onKeyDownCapture={handleShortcutKeyDown}
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => {
+          if (sourcePreviewIndex !== null) {
+            e.preventDefault();
+            closeSourcePreview();
+            return;
+          }
+
           if (showRejectPanel) {
             e.preventDefault();
-            setShowRejectPanel(false);
+            closeRejectPanel();
           }
         }}
       >
@@ -295,7 +474,6 @@ export function ImageReviewModal({
           <DialogTitle>图片审核</DialogTitle>
         </VisuallyHidden>
 
-        {/* All-done overlay */}
         {allDone && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70">
             <div className="text-center">
@@ -306,7 +484,6 @@ export function ImageReviewModal({
           </div>
         )}
 
-        {/* Top Navigation Bar */}
         <div className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-800 shrink-0">
           <div className="flex items-center gap-3">
             <Button
@@ -322,9 +499,7 @@ export function ImageReviewModal({
               <span className="text-white font-medium">{currentIndex + 1}</span>
               <span className="mx-1">/</span>
               <span>{generatedImages.length}</span>
-              <span className="ml-3 text-yellow-400">
-                {pendingCount} 张待审核
-              </span>
+              <span className="ml-3 text-yellow-400">{pendingCount} 张待审核</span>
             </span>
             <Button
               variant="ghost"
@@ -337,19 +512,15 @@ export function ImageReviewModal({
             </Button>
           </div>
 
-          {/* Status + Batch */}
           <div className="flex items-center gap-3">
             <span
               className={`px-2 py-1 rounded-full text-xs font-medium ${reviewStatusColors[currentImage.reviewStatus]}`}
             >
               {reviewStatusLabels[currentImage.reviewStatus]}
             </span>
-            <span className="text-xs text-gray-500">
-              第 {currentImage.batchNumber} 批
-            </span>
+            <span className="text-xs text-gray-500">第 {currentImage.batchNumber} 批</span>
           </div>
 
-          {/* Zoom Controls */}
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
@@ -407,10 +578,8 @@ export function ImageReviewModal({
           </div>
         </div>
 
-        {/* Main Content: Left-Right Split */}
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="flex-1 min-h-0 flex">
-            {/* Left: Generated Image */}
             <div
               ref={mainZoom.containerRef}
               className="flex-1 min-w-0 overflow-hidden flex items-center justify-center bg-gray-950 select-none"
@@ -430,7 +599,6 @@ export function ImageReviewModal({
               />
             </div>
 
-            {/* Right: Source Images Panel */}
             {sourceImages.length > 0 && (
               <div className="w-[280px] shrink-0 bg-gray-900 border-l border-gray-800 flex flex-col">
                 <div className="px-3 py-2 border-b border-gray-800">
@@ -439,19 +607,33 @@ export function ImageReviewModal({
                   </span>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                  {sourceImages.map((src) => (
+                  {sourceImages.map((src, index) => (
                     <button
                       key={src.id}
-                      onClick={() => setSourcePreviewUrl(src.url)}
-                      className="w-full rounded-lg overflow-hidden border border-gray-700 hover:border-yellow-500 transition-colors group/src"
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => openSourcePreview(index)}
+                      className={`w-full rounded-lg overflow-hidden border transition-colors group/src ${
+                        sourcePreviewIndex === index
+                          ? "border-yellow-500 ring-1 ring-yellow-500/40"
+                          : "border-gray-700 hover:border-yellow-500"
+                      }`}
                     >
                       <img
                         src={src.url}
                         alt={src.fileName || "原图"}
                         className="w-full object-contain bg-gray-800"
                       />
-                      <div className="px-2 py-1 bg-gray-800 text-[10px] text-gray-500 group-hover/src:text-yellow-400 truncate text-center">
-                        点击放大查看
+                      <div
+                        className={`px-2 py-1 bg-gray-800 text-[10px] truncate text-center ${
+                          sourcePreviewIndex === index
+                            ? "text-yellow-400"
+                            : "text-gray-500 group-hover/src:text-yellow-400"
+                        }`}
+                      >
+                        {sourcePreviewIndex === index
+                          ? `查看中 · 原图 ${index + 1}`
+                          : `点击放大 · 原图 ${index + 1}`}
                       </div>
                     </button>
                   ))}
@@ -460,17 +642,17 @@ export function ImageReviewModal({
             )}
           </div>
 
-          {/* Action Panel */}
           <div className="shrink-0 bg-gray-900 border-t border-gray-800 px-4 py-3">
             {showRejectPanel ? (
-              /* Rejection Reason Panel */
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-white">选择驳回理由</span>
+                  <span className="text-sm font-medium text-white">
+                    {currentImage.reviewStatus === "approved" ? "改为驳回" : "选择驳回理由"}
+                  </span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setShowRejectPanel(false)}
+                    onClick={closeRejectPanel}
                     className="text-gray-400 hover:text-white h-7 text-xs"
                   >
                     取消
@@ -499,7 +681,10 @@ export function ImageReviewModal({
                   <textarea
                     ref={customInputRef}
                     value={customReason}
-                    onChange={(e) => setCustomReason(e.target.value)}
+                    onChange={(e) => {
+                      setCustomReason(e.target.value);
+                      setRejectError(null);
+                    }}
                     onFocus={() => setIsInputFocused(true)}
                     onBlur={() => setIsInputFocused(false)}
                     placeholder="自定义驳回理由（可选）..."
@@ -507,21 +692,35 @@ export function ImageReviewModal({
                   />
                   <Button
                     onClick={handleReject}
-                    disabled={!canReject || loading}
+                    disabled={!canSubmitReject || loading}
                     className="bg-red-600 hover:bg-red-700 text-white h-10 px-6"
                   >
-                    {loading ? "处理中..." : "确认驳回"}
+                    {loading
+                      ? "处理中..."
+                      : currentImage.reviewStatus === "approved"
+                      ? "确认改为驳回"
+                      : "确认驳回"}
                   </Button>
                 </div>
-                {!canReject && (
-                  <p className="text-xs text-red-400">请选择或填写驳回理由</p>
+                {rejectError && (
+                  <p className="text-xs text-red-400">{rejectError}</p>
                 )}
+                <p className="text-xs text-gray-500">
+                  可多选预设理由，也可补充自定义说明。按 `Esc` 可收起驳回面板。
+                </p>
               </div>
             ) : (
-              /* Normal Action Buttons */
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-1">
+                  <div className="text-xs text-gray-500">
+                    快捷键：A/Enter 通过，R 驳回，←/→ 切换审核图，+/− 缩放，0 重置
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    放大原图后可用 ↑/↓ 切换其他原图，Esc 优先关闭原图或驳回面板
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
-                  {isPending ? (
+                  {currentImage.reviewStatus === "pending" && (
                     <>
                       <Button
                         onClick={handleApprove}
@@ -530,16 +729,14 @@ export function ImageReviewModal({
                       >
                         <Check className="h-4 w-4" />
                         {loading ? "处理中..." : "通过"}
-                        <kbd className="ml-1 text-[10px] opacity-60 bg-green-700 px-1 rounded">A</kbd>
                       </Button>
                       <Button
-                        onClick={() => setShowRejectPanel(true)}
+                        onClick={openRejectPanel}
                         disabled={loading}
                         className="bg-red-600 hover:bg-red-700 text-white gap-1.5"
                       >
                         <Ban className="h-4 w-4" />
                         驳回
-                        <kbd className="ml-1 text-[10px] opacity-60 bg-red-700 px-1 rounded">R</kbd>
                       </Button>
                       <Button
                         onClick={handleRegenerate}
@@ -548,39 +745,82 @@ export function ImageReviewModal({
                         className="border-orange-600 text-orange-400 hover:bg-orange-600/20 gap-1.5"
                       >
                         <RotateCcw className="h-4 w-4" />
-                        重新生成
+                        {loading ? "处理中..." : "重新生成"}
                       </Button>
                     </>
-                  ) : (
-                    <span
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium ${reviewStatusColors[currentImage.reviewStatus]}`}
-                    >
-                      {reviewStatusLabels[currentImage.reviewStatus]}
+                  )}
+
+                  {currentImage.reviewStatus === "approved" && (
+                    <>
+                      <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-green-500/10 text-green-300 border border-green-500/30">
+                        已通过，可改为驳回
+                      </span>
+                      <Button
+                        onClick={openRejectPanel}
+                        disabled={loading}
+                        className="bg-red-600 hover:bg-red-700 text-white gap-1.5"
+                      >
+                        <Ban className="h-4 w-4" />
+                        改为驳回
+                      </Button>
+                    </>
+                  )}
+
+                  {currentImage.reviewStatus === "rejected" && (
+                    <>
+                      <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-red-500/10 text-red-300 border border-red-500/30">
+                        已驳回，可改为通过
+                      </span>
+                      <Button
+                        onClick={handleApprove}
+                        disabled={loading}
+                        className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
+                      >
+                        <Check className="h-4 w-4" />
+                        {loading ? "处理中..." : "改为通过"}
+                      </Button>
+                    </>
+                  )}
+
+                  {currentImage.reviewStatus === "regenerate" && (
+                    <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-orange-500/10 text-orange-300 border border-orange-500/30">
+                      当前为待重制状态，本次不提供纠错操作
                     </span>
                   )}
-                </div>
-                <div className="flex items-center gap-4 text-xs text-gray-500">
-                  <span>← → 切换图片</span>
-                  <span>滚轮/+/- 缩放</span>
-                  <span>双击放大</span>
-                  <span>Esc 关闭</span>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Source Image Preview Overlay */}
-        {sourcePreviewUrl && (
+        {currentSourcePreview && (
           <div
-            className="absolute inset-0 z-40 bg-black/90 flex items-center justify-center"
-            onClick={() => {
-              setSourcePreviewUrl(null);
-              sourceZoom.reset();
-            }}
+            className="absolute inset-0 z-50 bg-black/90 flex items-center justify-center p-8"
+            onClick={closeSourcePreview}
           >
             <div
-              className="max-w-[90%] max-h-[90%] relative"
+              className="absolute top-4 right-4 z-10 flex items-center gap-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="text-xs text-gray-300 bg-black/60 px-3 py-1 rounded-full">
+                原图 {sourcePreviewIndex! + 1} / {sourceImages.length}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={closeSourcePreview}
+                className="text-white hover:bg-white/20 h-10 w-10"
+              >
+                <X className="h-6 w-6" />
+              </Button>
+            </div>
+            <div
+              ref={(node) => {
+                sourcePreviewContainerRef.current = node;
+                sourceZoom.containerRef.current = node;
+              }}
+              className="max-w-[90%] max-h-[90%] relative overflow-hidden flex items-center justify-center"
+              tabIndex={-1}
               onClick={(e) => e.stopPropagation()}
               onWheel={sourceZoom.handleWheel}
               onMouseDown={sourceZoom.handleMouseDown}
@@ -589,27 +829,17 @@ export function ImageReviewModal({
               onDoubleClick={sourceZoom.handleDoubleClick}
             >
               <img
-                src={sourcePreviewUrl}
-                alt="原图预览"
+                key={currentSourcePreview.id}
+                src={currentSourcePreview.url}
+                alt={currentSourcePreview.fileName || "原图预览"}
                 className="max-w-full max-h-[85vh] object-contain"
                 style={sourceZoom.style}
                 draggable={false}
               />
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setSourcePreviewUrl(null);
-                sourceZoom.reset();
-              }}
-              className="absolute top-4 right-4 text-white hover:bg-white/20 h-10 w-10"
-            >
-              <X className="h-6 w-6" />
-            </Button>
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
               <span className="text-xs text-gray-400 bg-black/60 px-3 py-1 rounded-full">
-                原图预览 · 滚轮缩放 · 双击放大 · 点击空白处关闭
+                ↑/↓ 切换原图 · 滚轮缩放 · 双击放大 · Esc 关闭
               </span>
             </div>
           </div>
