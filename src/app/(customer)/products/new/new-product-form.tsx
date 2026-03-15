@@ -354,25 +354,30 @@ export function NewProductForm({
         )}
       </div>
 
-      <div className="sticky bottom-0 bg-white border-t border-gray-100 rounded-b-xl p-3 -mx-0 space-y-2 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs text-gray-500">消耗点数</p>
-            <p className="text-base font-semibold text-[#4E342E]">1 点</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-gray-500">可用点数</p>
-            <p className="text-base font-semibold text-[#4E342E]">{availableCredits} 点</p>
-          </div>
-        </div>
+      {/* Spacer for fixed bottom bar */}
+      <div className="h-28" />
 
-        <Button
-          type="submit"
-          disabled={submitting || uploading || !hasSceneTemplates}
-          className="w-full py-2.5 bg-[#FDD835] text-[#4E342E] font-semibold rounded-lg hover:bg-[#FDD835]/90 disabled:opacity-50 text-sm"
-        >
-          {submitting ? "创建中..." : "创建产品"}
-        </Button>
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 space-y-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-xs text-gray-500">消耗点数</p>
+              <p className="text-base font-semibold text-[#4E342E]">1 点</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-500">可用点数</p>
+              <p className="text-base font-semibold text-[#4E342E]">{availableCredits} 点</p>
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={submitting || uploading || !hasSceneTemplates}
+            className="w-full py-2.5 bg-[#FDD835] text-[#4E342E] font-semibold rounded-lg hover:bg-[#FDD835]/90 disabled:opacity-50 text-sm"
+          >
+            {submitting ? "创建中..." : "创建产品"}
+          </Button>
+        </div>
       </div>
     </form>
   );
