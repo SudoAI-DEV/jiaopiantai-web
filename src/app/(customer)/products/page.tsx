@@ -2,9 +2,8 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth-utils";
 import { db } from "@/lib/db";
 import { products, productSourceImages, type ProductStatus } from "@/lib/db/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GridImage } from "@/components/ui/optimized-image";
+import { eq, desc, and, sql, inArray } from "drizzle-orm";
+import { Card, CardContent } from "@/components/ui/card";
 
 const statusOptions = [
   { value: "", label: "全部" },
@@ -92,7 +91,7 @@ export default async function ProductsPage({
   const productIds = productsList.map(p => p.id);
   const allSourceImages = productIds.length > 0 
     ? await db.select().from(productSourceImages).where(
-      sql`${productSourceImages.productId} IN (${productIds})`
+      inArray(productSourceImages.productId, productIds)
     )
     : [];
   
@@ -188,8 +187,11 @@ export default async function ProductsPage({
                           {statusLabels[product.status || "draft"] || product.status}
                         </span>
                       </div>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500">
                         <span>编号: {product.productNumber}</span>
+                        <span>
+                          批次: {product.batchNumber ? `第 ${product.batchNumber} 批` : "-"}
+                        </span>
                         <span>
                           类目:{" "}
                           {categoryLabels[product.category] || product.category}

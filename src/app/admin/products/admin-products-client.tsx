@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type KeyboardEvent, type MouseEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 interface Product {
   id: string;
   productNumber: string;
+  batchNumber: number | null;
   name: string;
   category: string;
   status: string;
@@ -15,6 +16,7 @@ interface Product {
   userId: string;
   createdAt: Date | null;
   shopName: string | null;
+  firstImageUrl: string | null;
 }
 
 interface AdminProductsClientProps {
@@ -67,6 +69,25 @@ export function AdminProductsClient({ initialProducts }: AdminProductsClientProp
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
 
+  const getProductHref = (productId: string) => `/admin/products/${productId}/review`;
+
+  const stopRowNavigation = (event: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>) => {
+    event.stopPropagation();
+  };
+
+  const navigateToProduct = (productId: string) => {
+    router.push(getProductHref(productId));
+  };
+
+  const handleRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>, productId: string) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    navigateToProduct(productId);
+  };
+
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -111,7 +132,7 @@ export function AdminProductsClient({ initialProducts }: AdminProductsClientProp
       setProducts((prev) => prev.filter((p) => !selectedIds.has(p.id)));
       setSelectedIds(new Set());
       router.refresh();
-    } catch (err) {
+    } catch {
       alert("批量删除失败，请重试");
     } finally {
       setLoading(false);
@@ -172,7 +193,9 @@ export function AdminProductsClient({ initialProducts }: AdminProductsClientProp
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="w-10 px-4 py-3"></th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">参考图</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">产品编号</th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">批次</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">产品名称</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">客户</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">类目</th>
@@ -185,7 +208,7 @@ export function AdminProductsClient({ initialProducts }: AdminProductsClientProp
             <tbody className="divide-y">
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
                     暂无产品数据
                   </td>
                 </tr>
@@ -193,18 +216,53 @@ export function AdminProductsClient({ initialProducts }: AdminProductsClientProp
                 products.map((product) => (
                   <tr
                     key={product.id}
-                    className={`hover:bg-gray-50 ${selectedIds.has(product.id) ? "bg-yellow-50" : ""}`}
+                    tabIndex={0}
+                    role="link"
+                    aria-label={`打开 ${product.name} 的审核详情`}
+                    onClick={() => navigateToProduct(product.id)}
+                    onKeyDown={(event) => handleRowKeyDown(event, product.id)}
+                    className={`cursor-pointer border-l-2 transition-colors outline-none hover:bg-[#FFF9EF] focus-visible:bg-[#FFF4CC] ${
+                      selectedIds.has(product.id)
+                        ? "border-l-[#FDD835] bg-[#FFF8DA]"
+                        : "border-l-transparent"
+                    }`}
                   >
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={selectedIds.has(product.id)}
                         onChange={() => toggleSelect(product.id)}
+                        onClick={stopRowNavigation}
+                        onKeyDown={stopRowNavigation}
                         className="w-4 h-4 rounded border-gray-300 text-[#FDD835] focus:ring-[#FDD835]"
                       />
                     </td>
+                    <td className="px-4 py-3">
+                      <div className="h-14 w-14 overflow-hidden rounded-xl border border-[#E6DDD1] bg-[#F6F0E7] shadow-[0_8px_18px_rgba(78,52,46,0.08)]">
+                        {product.firstImageUrl ? (
+                          <img
+                            src={product.firstImageUrl}
+                            alt={`${product.name} 首图`}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-xs font-medium text-[#9C8B7E]">
+                            无图
+                          </div>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-sm text-[#4E342E]">
                       {product.productNumber}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {product.batchNumber ? (
+                        <span className="inline-flex rounded-full bg-[#F6EFD8] px-2.5 py-1 text-xs font-medium text-[#8B6A1C]">
+                          第 {product.batchNumber} 批
+                        </span>
+                      ) : (
+                        "-"
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <p className="font-medium text-[#4E342E]">{product.name}</p>
@@ -234,8 +292,9 @@ export function AdminProductsClient({ initialProducts }: AdminProductsClientProp
                     </td>
                     <td className="px-4 py-3">
                       <Link
-                        href={`/admin/products/${product.id}/review`}
-                        className="text-[#FDD835] hover:underline text-sm"
+                        href={getProductHref(product.id)}
+                        onClick={stopRowNavigation}
+                        className="text-[#C69200] hover:underline text-sm font-medium"
                       >
                         {product.status === "reviewing" ||
                         product.status === "processing" ||

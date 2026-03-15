@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getSession } from "@/lib/auth-utils";
 
 export const metadata: Metadata = {
   title: "产品管理",
 };
 import { db } from "@/lib/db";
-import { userProfiles, products } from "@/lib/db/schema";
-import { eq, desc, sql, like, or, and } from "drizzle-orm";
-import { Card, CardContent } from "@/components/ui/card";
+import { userProfiles, products, productSourceImages } from "@/lib/db/schema";
+import { eq, desc, like, or, and, inArray, asc } from "drizzle-orm";
 import { Input } from "@/components/ui/input";
 import { AdminProductsClient } from "./admin-products-client";
 
@@ -49,6 +47,7 @@ async function getProducts(search?: string, status?: string, userId?: string) {
     .select({
       id: products.id,
       productNumber: products.productNumber,
+      batchNumber: products.batchNumber,
       name: products.name,
       category: products.category,
       status: products.status,
@@ -56,13 +55,41 @@ async function getProducts(search?: string, status?: string, userId?: string) {
       userId: products.userId,
       createdAt: products.createdAt,
       shopName: userProfiles.shopName,
-      email: userProfiles.id,
     })
     .from(products)
     .leftJoin(userProfiles, eq(products.userId, userProfiles.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(products.createdAt));
-  return result;
+
+  if (result.length === 0) {
+    return [];
+  }
+
+  const sourceImages = await db
+    .select({
+      productId: productSourceImages.productId,
+      url: productSourceImages.url,
+    })
+    .from(productSourceImages)
+    .where(inArray(productSourceImages.productId, result.map((product) => product.id)))
+    .orderBy(
+      asc(productSourceImages.productId),
+      asc(productSourceImages.sortOrder),
+      asc(productSourceImages.createdAt)
+    );
+
+  const firstImageByProductId: Record<string, string> = {};
+
+  for (const image of sourceImages) {
+    if (!firstImageByProductId[image.productId]) {
+      firstImageByProductId[image.productId] = image.url;
+    }
+  }
+
+  return result.map((product) => ({
+    ...product,
+    firstImageUrl: firstImageByProductId[product.id] ?? null,
+  }));
 }
 
 export default async function AdminProductsPage({

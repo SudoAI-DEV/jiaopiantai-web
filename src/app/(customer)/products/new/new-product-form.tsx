@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-interface StyleTemplate {
+interface SceneTemplate {
   id: string;
   name: string;
   description: string | null;
@@ -15,22 +15,23 @@ interface StyleTemplate {
 
 interface NewProductFormProps {
   categories: { value: string; label: string }[];
-  styleTemplates: StyleTemplate[];
+  sceneTemplates: SceneTemplate[];
   availableCredits: number;
 }
 
 export function NewProductForm({
   categories,
-  styleTemplates,
+  sceneTemplates,
   availableCredits,
 }: NewProductFormProps) {
   const router = useRouter();
+  const hasSceneTemplates = sceneTemplates.length > 0;
 
   const [formData, setFormData] = useState({
     name: "",
     category: "clothing",
     shootingRequirements: "",
-    stylePreference: styleTemplates[0]?.id || "",
+    stylePreference: sceneTemplates[0]?.id || "",
     specialNotes: "",
     deliveryCount: 6,
   });
@@ -124,8 +125,13 @@ export function NewProductForm({
     e.preventDefault();
     setError("");
 
-    if (!formData.name || !formData.shootingRequirements) {
-      setError("请填写产品名称和拍摄需求");
+    if (!formData.name) {
+      setError("请填写产品名称");
+      return;
+    }
+
+    if (!formData.stylePreference) {
+      setError("请选择场景");
       return;
     }
 
@@ -220,15 +226,14 @@ export function NewProductForm({
         </div>
 
         <div>
-          <Label htmlFor="shootingRequirements" className="text-sm">拍摄需求 *</Label>
+          <Label htmlFor="shootingRequirements" className="text-sm">拍摄需求</Label>
           <textarea
             id="shootingRequirements"
             name="shootingRequirements"
             value={formData.shootingRequirements}
             onChange={handleChange}
-            placeholder="请描述产品特点、想要的场景、风格、角度等。例如：春夏季节款连衣裙，田园风格，浅色背景，自然光线，侧身展示"
+            placeholder="请描述产品特点、想要的场景氛围、展示角度和光线。例如：春夏连衣裙，轻户外自然光，模特侧身走动，画面干净通透"
             rows={3}
-            required
             className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FDD835] text-sm"
           />
         </div>
@@ -288,7 +293,10 @@ export function NewProductForm({
 
       <div className="bg-white rounded-xl p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-[#4E342E]">选择风格</h2>
+          <div>
+            <h2 className="text-base font-semibold text-[#4E342E]">选择场景</h2>
+            <p className="mt-1 text-xs text-[#8C7A6D]">固定 4 个场景模板，作为本次生成的主要参考。</p>
+          </div>
           <div className="flex items-center gap-2 text-xs">
             <Label htmlFor="deliveryCount" className="text-gray-500">交付数量</Label>
             <Input
@@ -304,36 +312,77 @@ export function NewProductForm({
           </div>
         </div>
 
-        <div className="space-y-2">
-          {styleTemplates.map((style) => (
-            <label
-              key={style.id}
-              className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                formData.stylePreference === style.id
-                  ? "border-[#FDD335] bg-[#FDD335]/5"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <input
-                type="radio"
-                name="stylePreference"
-                value={style.id}
-                checked={formData.stylePreference === style.id}
-                onChange={handleChange}
-                className="sr-only"
-              />
-              {style.thumbnailUrl && (
-                <img src={style.thumbnailUrl} alt={style.name} className="w-12 h-12 object-cover rounded" />
-              )}
-              <span className={`font-medium text-sm ${formData.stylePreference === style.id ? "text-[#4E342E]" : "text-gray-700"}`}>
-                {style.name}
-              </span>
-              {formData.stylePreference === style.id && (
-                <span className="ml-auto text-[#FDD335]">✓</span>
-              )}
-            </label>
-          ))}
-        </div>
+        {!hasSceneTemplates ? (
+          <div className="rounded-xl border border-dashed border-[#E6DDD1] bg-[#FBF7F1] px-4 py-6 text-sm text-[#8C7A6D]">
+            暂无可用场景，请联系管理员先配置场景模板。
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {sceneTemplates.map((scene, index) => {
+              const isSelected = formData.stylePreference === scene.id;
+
+              return (
+                <label
+                  key={scene.id}
+                  className={`group overflow-hidden rounded-2xl border cursor-pointer transition-all ${
+                    isSelected
+                      ? "border-[#FDD835] bg-[#FFF9E8] shadow-[0_12px_30px_rgba(253,216,53,0.18)]"
+                      : "border-[#E8E1D8] bg-white hover:border-[#D9C7A7] hover:shadow-[0_10px_24px_rgba(78,52,46,0.08)]"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="stylePreference"
+                    value={scene.id}
+                    checked={isSelected}
+                    onChange={handleChange}
+                    className="sr-only"
+                  />
+                  <div className="relative aspect-[4/3] overflow-hidden bg-[#F6F0E7]">
+                    {scene.thumbnailUrl ? (
+                      <img
+                        src={scene.thumbnailUrl}
+                        alt={scene.name}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-3xl text-[#B7A898]">
+                        场景
+                      </div>
+                    )}
+                    <div className="absolute left-3 top-3 rounded-full bg-white/88 px-2.5 py-1 text-xs font-medium text-[#6E584C] backdrop-blur-sm">
+                      场景 {index + 1}
+                    </div>
+                    {isSelected && (
+                      <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-[#FDD835] text-[#4E342E] text-sm font-bold">
+                        ✓
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-semibold text-sm text-[#4E342E]">
+                        {scene.name}
+                      </span>
+                      <span className={`text-xs ${isSelected ? "text-[#8B6A1C]" : "text-[#9C8B7E]"}`}>
+                        {isSelected ? "已选择" : "点击选择"}
+                      </span>
+                    </div>
+                    {scene.description ? (
+                      <p className="text-xs leading-5 text-[#8C7A6D]">
+                        {scene.description}
+                      </p>
+                    ) : (
+                      <p className="text-xs leading-5 text-[#8C7A6D]">
+                        用这个场景作为画面氛围、构图和背景参考。
+                      </p>
+                    )}
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
@@ -349,7 +398,7 @@ export function NewProductForm({
 
       <Button
         type="submit"
-        disabled={submitting || uploading}
+        disabled={submitting || uploading || !hasSceneTemplates}
         className="w-full py-2.5 bg-[#FDD835] text-[#4E342E] font-semibold rounded-lg hover:bg-[#FDD835]/90 disabled:opacity-50 text-sm"
       >
         {submitting ? "创建中..." : "创建产品"}

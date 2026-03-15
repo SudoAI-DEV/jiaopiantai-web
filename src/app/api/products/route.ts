@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     const { name, category, description, shootingRequirements, stylePreference, specialNotes, deliveryCount } = body;
 
     // Validate required fields
-    if (!name || !category || !shootingRequirements || !stylePreference) {
+    if (!name || !category || !stylePreference) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -108,7 +108,10 @@ export async function POST(request: NextRequest) {
       name,
       category,
       description: description || null,
-      shootingRequirements,
+      shootingRequirements:
+        typeof shootingRequirements === "string" && shootingRequirements.trim().length > 0
+          ? shootingRequirements.trim()
+          : null,
       stylePreference,
       specialNotes: specialNotes || null,
       deliveryCount: deliveryCount || 6,

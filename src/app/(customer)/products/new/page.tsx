@@ -5,12 +5,13 @@ import { userProfiles, styleTemplates } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { NewProductForm } from "./new-product-form";
 
-async function getStyleTemplates() {
+async function getSceneTemplates() {
   return db
     .select()
     .from(styleTemplates)
     .where(eq(styleTemplates.isActive, true))
-    .orderBy(styleTemplates.sortOrder);
+    .orderBy(styleTemplates.sortOrder)
+    .limit(4);
 }
 
 async function getUserCredits() {
@@ -37,13 +38,13 @@ const CATEGORIES = [
 ];
 
 export default async function NewProductPage() {
-  const [styleTemplates, credits] = await Promise.all([
-    getStyleTemplates(),
+  const [sceneTemplates, credits] = await Promise.all([
+    getSceneTemplates(),
     getUserCredits(),
   ]);
 
   return (
-    <div className="max-w-3xl mx-auto overflow-x-hidden">
+    <div className="w-full overflow-x-hidden">
       <div className="mb-6">
         <Link
           href="/products"
@@ -72,7 +73,7 @@ export default async function NewProductPage() {
       ) : (
         <NewProductForm
           categories={CATEGORIES}
-          styleTemplates={styleTemplates}
+          sceneTemplates={sceneTemplates}
           availableCredits={credits}
         />
       )}
