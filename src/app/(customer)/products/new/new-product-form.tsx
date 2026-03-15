@@ -9,23 +9,23 @@ import type { Scene } from "@/lib/scenes";
 
 interface NewProductFormProps {
   categories: { value: string; label: string }[];
-  sceneTemplates: Scene[];
+  scenes: Scene[];
   availableCredits: number;
 }
 
 export function NewProductForm({
   categories,
-  sceneTemplates,
+  scenes,
   availableCredits,
 }: NewProductFormProps) {
   const router = useRouter();
-  const hasSceneTemplates = sceneTemplates.length > 0;
+  const hasScenes = scenes.length > 0;
 
   const [formData, setFormData] = useState({
     category: "clothing",
     batchNumber: 1,
     shootingRequirements: "",
-    selectedSceneId: sceneTemplates[0]?.id || "",
+    selectedSceneId: scenes[0]?.id || "",
     specialNotes: "",
     deliveryCount: 6,
   });
@@ -240,13 +240,13 @@ export function NewProductForm({
           </div>
         </div>
 
-        {!hasSceneTemplates ? (
+        {!hasScenes ? (
           <div className="rounded-xl border border-dashed border-[#E6DDD1] bg-[#FBF7F1] px-4 py-6 text-sm text-[#8C7A6D]">
             暂无可用场景，请联系管理员先配置场景模板。
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {sceneTemplates.map((scene) => {
+            {scenes.map((scene) => {
               const isSelected = formData.selectedSceneId === scene.id;
 
               return (
@@ -368,7 +368,7 @@ export function NewProductForm({
 
           <Button
             type="submit"
-            disabled={submitting || uploading || !hasSceneTemplates}
+            disabled={submitting || uploading || !hasScenes}
             className="w-full py-2.5 bg-[#FDD835] text-[#4E342E] font-semibold rounded-lg hover:bg-[#FDD835]/90 disabled:opacity-50 text-sm"
           >
             {submitting ? "创建中..." : "创建产品"}

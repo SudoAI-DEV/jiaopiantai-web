@@ -50,6 +50,13 @@
       "when": 1773555273765,
       "tag": "0006_bitter_kid_colt",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1773557560633,
+      "tag": "0007_cloudy_dracula",
+      "breakpoints": true
     }
   ]
 }

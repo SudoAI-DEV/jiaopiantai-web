@@ -62,7 +62,7 @@ export default async function NewProductPage() {
       ) : (
         <NewProductForm
           categories={CATEGORIES}
-          sceneTemplates={[...SCENES]}
+          scenes={[...SCENES]}
           availableCredits={credits}
         />
       )}

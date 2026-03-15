@@ -118,7 +118,6 @@ export const products = pgTable('products', {
   status: varchar('status', { length: 30 }).default('draft'),
   deliveryCount: integer('delivery_count').default(6),
   shootingRequirements: text('shooting_requirements'),
-  scenePreference: text('scene_preference'),
   specialNotes: text('special_notes'),
   modelId: varchar('model_id', { length: 50 }),
   selectedSceneId: varchar('selected_scene_id', { length: 50 }),
@@ -180,21 +179,6 @@ export const imageFeedbacks = pgTable('image_feedbacks', {
   description: text('description'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
-
-// Scene templates — DEPRECATED: scenes are now code-driven (src/lib/scenes.ts)
-// Table definition kept for migration compatibility; no code should query this table.
-export const sceneTemplates = pgTable('scene_templates', {
-  id: varchar('id', { length: 50 }).primaryKey(),
-  name: varchar('name', { length: 100 }).notNull(),
-  description: text('description'),
-  thumbnailUrl: text('thumbnail_url'),
-  isActive: boolean('is_active').default(true),
-  sortOrder: integer("sort_order").default(0),
-  batchNumber: integer("batch_number"),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
-});
-
-export type SceneTemplate = typeof sceneTemplates.$inferSelect;
 
 // Product scene selections
 export const productSceneSelections = pgTable('product_scene_selections', {
