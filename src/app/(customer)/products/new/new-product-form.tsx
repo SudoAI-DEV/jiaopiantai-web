@@ -25,7 +25,7 @@ export function NewProductForm({
     category: "clothing",
     batchNumber: 1,
     shootingRequirements: "",
-    selectedStyleId: sceneTemplates[0]?.id || "",
+    selectedSceneId: sceneTemplates[0]?.id || "",
     specialNotes: "",
     deliveryCount: 6,
   });
@@ -119,7 +119,7 @@ export function NewProductForm({
     e.preventDefault();
     setError("");
 
-    if (!formData.selectedStyleId) {
+    if (!formData.selectedSceneId) {
       setError("请选择场景");
       return;
     }
@@ -247,7 +247,7 @@ export function NewProductForm({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {sceneTemplates.map((scene) => {
-              const isSelected = formData.selectedStyleId === scene.id;
+              const isSelected = formData.selectedSceneId === scene.id;
 
               return (
                 <label
@@ -260,7 +260,7 @@ export function NewProductForm({
                 >
                   <input
                     type="radio"
-                    name="selectedStyleId"
+                    name="selectedSceneId"
                     value={scene.id}
                     checked={isSelected}
                     onChange={handleChange}

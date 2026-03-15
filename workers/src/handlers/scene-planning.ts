@@ -25,6 +25,7 @@ function buildPlanningPrompt(params: {
   siblingPlans: Array<{ taskId: string; result: unknown }>;
 }) {
   const { context, clothingAnalysis, siblingPlans } = params;
+  const selectedScene = getSceneById(context.scene);
 
   return [
     '你是电商服装编排系统里的 scene planning worker。',
@@ -33,7 +34,10 @@ function buildPlanningPrompt(params: {
     '',
     `产品名称：${context.product.name}`,
     `品类：${context.product.category}`,
-    `目标场景：${getSceneById(context.scene)?.name ?? context.scene}`,
+    `目标场景ID：${context.scene}`,
+    `目标场景：${selectedScene?.name ?? context.scene}`,
+    selectedScene?.description ? `场景说明：${selectedScene.description}` : '',
+    selectedScene?.sceneRef ? `场景参考模板：${selectedScene.sceneRef}` : '',
     context.selectedModel ? `绑定模特：${context.selectedModel.name}` : '',
     context.selectedModel?.description
       ? `模特描述：${context.selectedModel.description}`
@@ -44,7 +48,6 @@ function buildPlanningPrompt(params: {
     context.product.shootingRequirements
       ? `拍摄要求：${context.product.shootingRequirements}`
       : '',
-    context.product.stylePreference ? `风格偏好：${context.product.stylePreference}` : '',
     context.product.specialNotes ? `特殊说明：${context.product.specialNotes}` : '',
     '',
     '强制规则：',
@@ -233,7 +236,6 @@ export async function handleScenePlanning(payload: OrchestrationPayload & {
       sourceImageIds: context.sourceImageIds,
       sourceImageUrls: context.sourceImageUrls,
       sourceImageNotes: context.sourceImageNotes,
-      modelImageUrl: context.modelImage || undefined,
       selectedModel: context.selectedModel || undefined,
       batchDiversityContext: {
         siblingsChecked: siblingPlans.map((entry) => entry.taskId),
@@ -252,8 +254,6 @@ export async function handleScenePlanning(payload: OrchestrationPayload & {
       clothingAnalysis,
       sourceImageUrls: context.sourceImageUrls,
       sourceImageNotes: context.sourceImageNotes,
-      modelImage: context.modelImage,
-      customRequirements: context.customRequirements,
     },
     referenceId: context.product.id,
     referenceType: 'product',

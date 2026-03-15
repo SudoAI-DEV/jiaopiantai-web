@@ -5,7 +5,8 @@ import { products, productSourceImages, productGeneratedImages } from "@/lib/db/
 import { eq, and } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { TaskStatusPoller } from "@/components/task-status-poller";
-import { OptimizedImage, GridImage } from "@/components/ui/optimized-image";
+import { OptimizedImage } from "@/components/ui/optimized-image";
+import { SubmitProductButton } from "./submit-product-button";
 
 const statusLabels: Record<string, string> = {
   draft: "草稿",
@@ -102,14 +103,7 @@ export default async function ProductDetailPage({
         </div>
 
         {product.status === "draft" && (
-          <form action={`/api/products/${id}/submit`} method="POST">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-[#FDD835] text-[#4E342E] font-medium rounded-lg hover:bg-[#FDD835]/90"
-            >
-              提交审核
-            </button>
-          </form>
+          <SubmitProductButton productId={id} />
         )}
       </div>
 
@@ -186,7 +180,14 @@ export default async function ProductDetailPage({
           </h2>
         </div>
 
-        {generatedImages.length === 0 ? (
+        {product.status === "reviewing" ? (
+          <div className="text-center py-8">
+            <div className="text-4xl mb-3">⏳</div>
+            <p className="text-gray-500">
+              等待审核完成，请稍后再来查看...
+            </p>
+          </div>
+        ) : generatedImages.length === 0 ? (
           <div className="text-center py-8">
             <div className="text-4xl mb-3">🎨</div>
             <p className="text-gray-500">
@@ -232,7 +233,7 @@ export default async function ProductDetailPage({
         )}
 
         {/* Download Section */}
-        {approvedImages.length > 0 && product.status === "completed" && (
+        {approvedImages.length > 0 && (product.status === "completed" || product.status === "client_reviewing") && (
           <div className="mt-6 pt-6 border-t">
             <div className="flex items-center justify-between">
               <p className="text-gray-600">

@@ -82,7 +82,6 @@ export const scenePlanSchema = z.object({
     sourceImageIds: z.array(z.string()).min(1),
     sourceImageUrls: z.array(z.string()).min(1),
     sourceImageNotes: z.array(z.string()).default([]),
-    modelImageUrl: z.string().optional(),
     selectedModel: z.object({
       id: z.string(),
       name: z.string(),

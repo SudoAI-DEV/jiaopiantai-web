@@ -42,3 +42,7 @@ next-env.d.ts
 
 
 客户/
+
+# workers
+workers/node_modules/
+workers/dist/

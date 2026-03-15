@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { products, userProfiles, creditTransactions, aiGenerationTasks, productSourceImages } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
-import { nanoid } from "nanoid";
+import {
+  submitProductToQueue,
+  TaskLifecycleError,
+} from "@/lib/ai-task-lifecycle";
 import { broadcastStatusUpdate } from "@/lib/sse";
+
+const LEGACY_SUBMIT_KEYS = new Set([
+  "generationConfig",
+  "productConfigPath",
+  "selectedImages",
+  "selectedImageNotes",
+  "modelImage",
+  "customRequirements",
+]);
 
 export async function POST(
   request: NextRequest,
@@ -19,100 +28,45 @@ export async function POST(
     }
 
     const { id } = await params;
+    const contentType = request.headers.get("content-type") || "";
+    const requestPayload = contentType.includes("application/json")
+      ? await request.json().catch(() => null)
+      : null;
 
-    // Get product
-    const product = await db.query.products.findFirst({
-      where: and(eq(products.id, id), eq(products.userId, session.user.id)),
-    });
-
-    if (!product) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
-    }
-
-    if (product.status !== "draft") {
+    if (
+      requestPayload &&
+      typeof requestPayload === "object" &&
+      Object.keys(requestPayload).length > 0
+    ) {
+      const keys = Object.keys(requestPayload);
+      const hasLegacyKey = keys.some((key) => LEGACY_SUBMIT_KEYS.has(key));
       return NextResponse.json(
-        { error: "Product already submitted" },
+        {
+          error: hasLegacyKey
+            ? "旧流程配置已移除，请直接提交产品。"
+            : "提交接口不再接受额外参数。",
+        },
         { status: 400 }
       );
     }
 
-    // Get user profile
-    const profile = await db.query.userProfiles.findFirst({
-      where: eq(userProfiles.id, session.user.id),
-    });
-
-    if (!profile || (profile.creditsBalance || 0) < 1) {
-      return NextResponse.json(
-        { error: "Insufficient credits" },
-        { status: 400 }
-      );
-    }
-
-    // Get source images for the product
-    const sourceImages = await db.query.productSourceImages.findMany({
-      where: eq(productSourceImages.productId, id),
-    });
-
-    if (sourceImages.length === 0) {
-      return NextResponse.json(
-        { error: "Please upload at least one product image" },
-        { status: 400 }
-      );
-    }
-
-    // Freeze 1 credit and create AI task
-    await db.transaction(async (tx) => {
-      // Update user credits (freeze)
-      await tx
-        .update(userProfiles)
-        .set({
-          creditsBalance: (profile.creditsBalance || 0) - 1,
-          creditsFrozen: (profile.creditsFrozen || 0) + 1,
-        })
-        .where(eq(userProfiles.id, session.user.id));
-
-      // Record transaction
-      await tx.insert(creditTransactions).values({
-        id: nanoid(),
-        userId: session.user.id,
-        type: "submission",
-        amount: -1,
-        balanceAfter: (profile.creditsBalance || 0) - 1,
-        referenceId: id,
-        description: `提交产品: ${product.name}`,
-        createdAt: new Date(),
-      });
-
-      // Create AI generation task
-      const taskId = nanoid();
-      await tx.insert(aiGenerationTasks).values({
-        id: taskId,
-        productId: id,
-        status: "pending",
-        targetCount: 20,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-
-      // Update product status
-      await tx
-        .update(products)
-        .set({
-          status: "submitted",
-          updatedAt: new Date(),
-        })
-        .where(eq(products.id, id));
+    const submission = await submitProductToQueue({
+      productId: id,
+      userId: session.user.id,
     });
 
     // Broadcast status update to connected clients
     broadcastStatusUpdate(id, "submitted");
 
-    // TODO: Call AI service here to queue the task
-    // For now, we simulate task processing by updating status after a delay
-    // In production, this would be handled by a separate worker
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, submission });
   } catch (error) {
+    if (error instanceof TaskLifecycleError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status }
+      );
+    }
+
     console.error("Submit product error:", error);
     return NextResponse.json(
       { error: "Failed to submit product" },

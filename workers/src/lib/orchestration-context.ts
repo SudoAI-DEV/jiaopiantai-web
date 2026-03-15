@@ -1,7 +1,6 @@
 import { db, schema } from '../db.js';
 import { eq } from 'drizzle-orm';
-import { getReferenceName } from './legacy-product-config.js';
-import { isValidSceneId } from './scenes.js';
+import { resolveSceneId, type SceneId } from './scenes.js';
 
 const {
   products,
@@ -17,10 +16,6 @@ export interface OrchestrationPayload {
   sourceImageIds?: string[];
   sourceImageUrls?: string[];
   sourceImageNotes?: string[];
-  selectedImages?: string[];
-  selectedImageNotes?: string[];
-  modelImage?: string | null;
-  customRequirements?: string[];
   clothingAnalysis?: unknown;
   scenePlan?: unknown;
   scene?: string | null;
@@ -39,9 +34,7 @@ export interface LoadedOrchestrationContext {
     description: string | null;
     imageUrl: string;
   } | null;
-  modelImage: string | null;
-  customRequirements: string[];
-  scene: string;
+  scene: SceneId;
 }
 
 interface QueueTaskLike {
@@ -59,24 +52,20 @@ function normalizeStringArray(values?: string[] | null): string[] {
   return (values ?? []).map((value) => value.trim()).filter(Boolean);
 }
 
-function selectSourceImages(
-  availableImages: Array<typeof productSourceImages.$inferSelect>,
-  selectedImages?: string[]
-) {
-  if (!selectedImages || selectedImages.length === 0) {
-    return availableImages;
+function getReferenceName(reference: string): string {
+  const trimmed = reference.trim();
+  if (trimmed.length === 0) {
+    return trimmed;
   }
 
-  const selectedNames = new Set(selectedImages.map((entry) => getReferenceName(entry)));
-  const filtered = availableImages.filter((image) => {
-    if (image.fileName && selectedNames.has(image.fileName)) {
-      return true;
-    }
-
-    return selectedNames.has(getReferenceName(image.url));
-  });
-
-  return filtered.length > 0 ? filtered : availableImages;
+  try {
+    const url = new URL(trimmed);
+    const parts = url.pathname.split('/').filter(Boolean);
+    return parts[parts.length - 1] || trimmed;
+  } catch {
+    const parts = trimmed.split(/[\\/]/).filter(Boolean);
+    return parts[parts.length - 1] || trimmed;
+  }
 }
 
 export async function loadOrchestrationContext(
@@ -119,20 +108,14 @@ export async function loadOrchestrationContext(
     throw new Error(`Product ${payload.productId} has no source images`);
   }
 
-  const sourceImages = selectSourceImages(
-    availableImages,
-    normalizeStringArray(payload.selectedImages)
-  );
+  const sourceImages = availableImages;
 
   const sourceImageIds = sourceImages.map((image) => image.id);
   const sourceImageUrls = sourceImages.map((image) => image.url);
   const payloadNotes = normalizeStringArray(payload.sourceImageNotes);
-  const selectedNotes = normalizeStringArray(payload.selectedImageNotes);
   const sourceImageNotes = payloadNotes.length > 0
     ? payloadNotes
-    : selectedNotes.length > 0
-      ? selectedNotes
-      : sourceImages.map((image) => image.fileName || getReferenceName(image.url));
+    : sourceImages.map((image) => image.fileName || getReferenceName(image.url));
   const selectedModel = boundModel
     ? {
         id: boundModel.id,
@@ -141,7 +124,6 @@ export async function loadOrchestrationContext(
         imageUrl: boundModel.imageUrl,
       }
     : null;
-  const fallbackModelImage = payload.modelImage?.trim() || null;
 
   return {
     product,
@@ -151,22 +133,35 @@ export async function loadOrchestrationContext(
     sourceImageUrls,
     sourceImageNotes,
     selectedModel,
-    modelImage: selectedModel?.imageUrl || fallbackModelImage,
-    customRequirements: normalizeStringArray(payload.customRequirements),
-    scene: resolveScene(payload.scene, product.category, product.stylePreference),
+    scene: resolveScene(
+      payload.scene,
+      product.selectedStyleId,
+      product.stylePreference
+    ),
   };
 }
 
 function resolveScene(
   payloadScene: string | null | undefined,
-  category: string | null,
+  selectedStyleId: string | null,
   stylePreference: string | null,
-): string {
-  const candidates = [payloadScene?.trim(), stylePreference, category];
-  for (const c of candidates) {
-    if (c && isValidSceneId(c)) return c;
+): SceneId {
+  const candidates = [
+    payloadScene?.trim(),
+    selectedStyleId?.trim(),
+    stylePreference?.trim(),
+  ];
+
+  for (const candidate of candidates) {
+    const resolved = resolveSceneId(candidate);
+    if (resolved) {
+      return resolved;
+    }
   }
-  return 'country-garden';
+
+  throw new Error(
+    `[orchestration] Missing valid scene enum for task. Candidates=${JSON.stringify(candidates)}`
+  );
 }
 
 export async function loadRecentSiblingScenePlans(params: {

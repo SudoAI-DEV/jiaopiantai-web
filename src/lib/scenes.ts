@@ -54,6 +54,21 @@ export function getSceneById(id: string): Scene | undefined {
   return SCENES.find((s) => s.id === id);
 }
 
+/** 根据正式场景 ID 解析场景枚举 */
+export function resolveSceneId(value: string | null | undefined): SceneId | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  return getSceneById(value.trim())?.id;
+}
+
+/** 根据正式场景 ID 查场景 */
+export function getSceneByValue(value: string | null | undefined): Scene | undefined {
+  const sceneId = resolveSceneId(value);
+  return sceneId ? getSceneById(sceneId) : undefined;
+}
+
 /** 校验是否为合法场景 ID */
 export function isValidSceneId(id: string): id is SceneId {
   return SCENES.some((s) => s.id === id);

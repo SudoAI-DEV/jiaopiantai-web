@@ -1,0 +1,27 @@
+{
+  "name": "jiaopiantai-workers",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/workers/src/index.js",
+    "test": "node --import tsx --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^3.0.43",
+    "@aws-sdk/client-s3": "^3.1008.0",
+    "@google/genai": "^0.8.0",
+    "ai": "^6.0.116",
+    "dotenv": "^17.3.1",
+    "drizzle-orm": "^0.45.1",
+    "nanoid": "^5.1.5",
+    "postgres": "^3.4.8",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.19.0",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "./dist",
+    "rootDir": "..",
+    "baseUrl": ".",
+    "paths": {
+      "drizzle-orm": ["node_modules/drizzle-orm"],
+      "drizzle-orm/*": ["node_modules/drizzle-orm/*"]
+    },
+    "strict": true,
+    "noImplicitAny": false,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts", "../src/lib/db/schema-pg.ts"],
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts"]
+}

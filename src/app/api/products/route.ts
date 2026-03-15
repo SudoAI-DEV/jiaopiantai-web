@@ -6,7 +6,7 @@ import {
   buildGeneratedProductName,
   normalizeBatchNumber,
 } from "@/lib/product-identity";
-import { getSceneByValue } from "@/lib/scenes";
+import { getSceneById } from "@/lib/scenes";
 import { eq, desc, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
@@ -96,8 +96,7 @@ export async function POST(request: NextRequest) {
       category,
       description,
       shootingRequirements,
-      stylePreference,
-      selectedStyleId,
+      selectedSceneId,
       specialNotes,
       deliveryCount,
       batchNumber,
@@ -111,17 +110,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const selectedScene = getSceneByValue(
-      typeof selectedStyleId === "string" && selectedStyleId.trim().length > 0
-        ? selectedStyleId.trim()
-        : typeof stylePreference === "string" && stylePreference.trim().length > 0
-          ? stylePreference.trim()
-          : ""
+    const selectedScene = getSceneById(
+      typeof selectedSceneId === "string" ? selectedSceneId.trim() : ""
     );
 
     if (!selectedScene) {
       return NextResponse.json(
-        { error: "Invalid scene ID" },
+        { error: "无效的场景选择" },
         { status: 400 }
       );
     }
@@ -165,7 +160,7 @@ export async function POST(request: NextRequest) {
         productNumber,
         name: generatedName,
         batchNumber: resolvedBatchNumber,
-        selectedStyleId: selectedScene.id,
+        selectedSceneId: selectedScene.id,
         modelId: null,
         status: "draft",
       },

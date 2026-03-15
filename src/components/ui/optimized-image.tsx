@@ -28,6 +28,7 @@ export function OptimizedImage({
   aspectRatio = "auto",
   showSkeleton = true,
   className = "",
+  fill = false,
 }: OptimizedImageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -35,7 +36,7 @@ export function OptimizedImage({
   return (
     <div
       className={`relative overflow-hidden bg-gray-100 ${
-        aspectRatioClasses[aspectRatio]
+        fill ? "" : aspectRatioClasses[aspectRatio]
       } ${className}`}
     >
       {showSkeleton && isLoading && (
