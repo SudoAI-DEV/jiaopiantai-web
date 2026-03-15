@@ -22,10 +22,10 @@ export function NewProductForm({
   const hasSceneTemplates = sceneTemplates.length > 0;
 
   const [formData, setFormData] = useState({
-    name: "",
     category: "clothing",
+    batchNumber: 1,
     shootingRequirements: "",
-    stylePreference: sceneTemplates[0]?.id || "",
+    selectedStyleId: sceneTemplates[0]?.id || "",
     specialNotes: "",
     deliveryCount: 6,
   });
@@ -119,12 +119,7 @@ export function NewProductForm({
     e.preventDefault();
     setError("");
 
-    if (!formData.name) {
-      setError("请填写产品名称");
-      return;
-    }
-
-    if (!formData.stylePreference) {
+    if (!formData.selectedStyleId) {
       setError("请选择场景");
       return;
     }
@@ -142,6 +137,7 @@ export function NewProductForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          batchNumber: parseInt(String(formData.batchNumber), 10),
           deliveryCount: parseInt(String(formData.deliveryCount)),
         }),
       });
@@ -189,18 +185,6 @@ export function NewProductForm({
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="name" className="text-sm">产品名称 *</Label>
-            <Input
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="例如：春季新款连衣裙"
-              required
-              className="mt-1 h-9"
-            />
-          </div>
-          <div>
             <Label htmlFor="category" className="text-sm">产品类目 *</Label>
             <select
               id="category"
@@ -217,6 +201,23 @@ export function NewProductForm({
               ))}
             </select>
           </div>
+          <div>
+            <Label htmlFor="batchNumber" className="text-sm">批次</Label>
+            <Input
+              id="batchNumber"
+              name="batchNumber"
+              type="number"
+              min={1}
+              value={formData.batchNumber}
+              onChange={handleChange}
+              placeholder="1"
+              className="mt-1 h-9"
+            />
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-dashed border-[#E6DDD1] bg-[#FBF7F1] px-4 py-3 text-sm text-[#8C7A6D]">
+          产品名称将由系统自动生成，格式为“产品编号 + 第 N 批 + 场景名称”。
         </div>
 
         <div>
@@ -312,66 +313,39 @@ export function NewProductForm({
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {sceneTemplates.map((scene, index) => {
-              const isSelected = formData.stylePreference === scene.id;
+            {sceneTemplates.map((scene) => {
+              const isSelected = formData.selectedStyleId === scene.id;
 
               return (
                 <label
                   key={scene.id}
-                  className={`group overflow-hidden rounded-2xl border cursor-pointer transition-all ${
+                  className={`group rounded-xl border cursor-pointer transition-all px-4 py-3 ${
                     isSelected
-                      ? "border-[#FDD835] bg-[#FFF9E8] shadow-[0_12px_30px_rgba(253,216,53,0.18)]"
-                      : "border-[#E8E1D8] bg-white hover:border-[#D9C7A7] hover:shadow-[0_10px_24px_rgba(78,52,46,0.08)]"
+                      ? "border-[#FDD835] bg-[#FFF9E8] shadow-sm"
+                      : "border-[#E8E1D8] bg-white hover:border-[#D9C7A7]"
                   }`}
                 >
                   <input
                     type="radio"
-                    name="stylePreference"
+                    name="selectedStyleId"
                     value={scene.id}
                     checked={isSelected}
                     onChange={handleChange}
                     className="sr-only"
                   />
-                  <div className="relative aspect-[4/3] overflow-hidden bg-[#F6F0E7]">
-                    {scene.thumbnailUrl ? (
-                      <img
-                        src={scene.thumbnailUrl}
-                        alt={scene.name}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-3xl text-[#B7A898]">
-                        场景
-                      </div>
-                    )}
-                    <div className="absolute left-3 top-3 rounded-full bg-white/88 px-2.5 py-1 text-xs font-medium text-[#6E584C] backdrop-blur-sm">
-                      场景 {index + 1}
-                    </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-sm text-[#4E342E]">
+                      {scene.name}
+                    </span>
                     {isSelected && (
-                      <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-[#FDD835] text-[#4E342E] text-sm font-bold">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FDD835] text-[#4E342E] text-xs font-bold shrink-0">
                         ✓
-                      </div>
+                      </span>
                     )}
                   </div>
-                  <div className="space-y-1 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-semibold text-sm text-[#4E342E]">
-                        {scene.name}
-                      </span>
-                      <span className={`text-xs ${isSelected ? "text-[#8B6A1C]" : "text-[#9C8B7E]"}`}>
-                        {isSelected ? "已选择" : "点击选择"}
-                      </span>
-                    </div>
-                    {scene.description ? (
-                      <p className="text-xs leading-5 text-[#8C7A6D]">
-                        {scene.description}
-                      </p>
-                    ) : (
-                      <p className="text-xs leading-5 text-[#8C7A6D]">
-                        用这个场景作为画面氛围、构图和背景参考。
-                      </p>
-                    )}
-                  </div>
+                  <p className="mt-1 text-xs leading-5 text-[#8C7A6D]">
+                    {scene.description}
+                  </p>
                 </label>
               );
             })}
