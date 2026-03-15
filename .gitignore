@@ -46,3 +46,5 @@ next-env.d.ts
 # workers
 workers/node_modules/
 workers/dist/
+
+.import-cache
