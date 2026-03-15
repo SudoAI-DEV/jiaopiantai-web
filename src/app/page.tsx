@@ -17,7 +17,7 @@ export default function Home() {
           </Link>
           <div className="hidden md:flex items-center gap-8">
             <a href="#process" className="text-[#4E342E]/70 hover:text-[#4E342E] transition-colors">服务流程</a>
-            <a href="#styles" className="text-[#4E342E]/70 hover:text-[#4E342E] transition-colors">风格展示</a>
+            <a href="#scenes" className="text-[#4E342E]/70 hover:text-[#4E342E] transition-colors">场景展示</a>
             <a href="#testimonials" className="text-[#4E342E]/70 hover:text-[#4E342E] transition-colors">客户评价</a>
           </div>
           <div className="flex items-center gap-3">
@@ -283,18 +283,18 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Style Gallery */}
-      <section id="styles" className="py-24 px-6">
+      {/* Scene Gallery */}
+      <section id="scenes" className="py-24 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <span className="inline-block px-4 py-1 bg-[#FDD835]/20 text-[#FF9800] text-sm font-medium rounded-full mb-4">
-              风格模板
+              场景模板
             </span>
             <h2 className="text-4xl lg:text-5xl font-bold text-[#4E342E] mb-4">
-              多样化风格选择
+              多样化场景选择
             </h2>
             <p className="text-xl text-[#4E342E]/60 max-w-2xl mx-auto">
-              根据您的产品特性选择最适合的展示风格
+              根据您的产品特性选择最适合的展示场景
             </p>
           </div>
 
@@ -444,7 +444,7 @@ export default function Home() {
                   <svg className="w-5 h-5 text-[#FDD835]" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  基础风格模板
+                  基础场景模板
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="w-5 h-5 text-[#FDD835]" fill="currentColor" viewBox="0 0 20 20">
@@ -480,7 +480,7 @@ export default function Home() {
                   <svg className="w-5 h-5 text-[#4E342E]" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
-                  全部风格模板
+                  全部场景模板
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="w-5 h-5 text-[#4E342E]" fill="currentColor" viewBox="0 0 20 20">

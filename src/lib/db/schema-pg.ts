@@ -118,10 +118,10 @@ export const products = pgTable('products', {
   status: varchar('status', { length: 30 }).default('draft'),
   deliveryCount: integer('delivery_count').default(6),
   shootingRequirements: text('shooting_requirements'),
-  stylePreference: text('style_preference'),
+  scenePreference: text('scene_preference'),
   specialNotes: text('special_notes'),
   modelId: varchar('model_id', { length: 50 }),
-  selectedStyleId: varchar('selected_style_id', { length: 50 }),
+  selectedSceneId: varchar('selected_scene_id', { length: 50 }),
   batchNumber: integer('batch_number'),
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   reviewedBy: varchar("reviewed_by", { length: 50 }),
@@ -181,9 +181,9 @@ export const imageFeedbacks = pgTable('image_feedbacks', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
 
-// Style templates — DEPRECATED: scenes are now code-driven (src/lib/scenes.ts)
+// Scene templates — DEPRECATED: scenes are now code-driven (src/lib/scenes.ts)
 // Table definition kept for migration compatibility; no code should query this table.
-export const styleTemplates = pgTable('style_templates', {
+export const sceneTemplates = pgTable('scene_templates', {
   id: varchar('id', { length: 50 }).primaryKey(),
   name: varchar('name', { length: 100 }).notNull(),
   description: text('description'),
@@ -194,13 +194,13 @@ export const styleTemplates = pgTable('style_templates', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
 
-export type StyleTemplate = typeof styleTemplates.$inferSelect;
+export type SceneTemplate = typeof sceneTemplates.$inferSelect;
 
-// Product style selections
-export const productStyleSelections = pgTable('product_style_selections', {
+// Product scene selections
+export const productSceneSelections = pgTable('product_scene_selections', {
   id: varchar('id', { length: 50 }).primaryKey(),
   productId: varchar('product_id', { length: 50 }).notNull(),
-  styleId: varchar('style_id', { length: 50 }).notNull(),
+  sceneId: varchar('scene_id', { length: 50 }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
 });
 
@@ -229,7 +229,7 @@ export const deliveryImages = pgTable('delivery_images', {
 export const aiGenerationTasks = pgTable('ai_generation_tasks', {
   id: varchar('id', { length: 50 }).primaryKey(),
   productId: varchar('product_id', { length: 50 }).notNull(),
-  styleId: varchar('style_id', { length: 50 }),
+  sceneId: varchar('scene_id', { length: 50 }),
   status: varchar('status', { length: 30 }).default('pending'),
   startedAt: timestamp('started_at', { withTimezone: true }),
   targetCount: integer('target_count').default(6),
@@ -259,7 +259,7 @@ export const operationLogs = pgTable('operation_logs', {
 // Task queue - generic task queue for worker processing
 export const taskQueue = pgTable('task_queue', {
   id: varchar('id', { length: 50 }).primaryKey(),
-  type: varchar('type', { length: 50 }).notNull(), // style_analysis, image_generation, etc.
+  type: varchar('type', { length: 50 }).notNull(), // clothing_analysis, image_generation, etc.
   status: varchar('status', { length: 20 }).default('pending').notNull(), // pending, processing, completed, failed, cancelled
   priority: integer('priority').default(10).notNull(),
   payload: jsonb('payload'), // task-specific input data

@@ -238,7 +238,7 @@ export default async function AdminDashboardPage() {
           </div>
         </Link>
         <Link
-          href="/admin/styles"
+          href="/admin/scenes"
           className="p-4 bg-white rounded-xl shadow-sm border hover:border-[#FDD835] transition-colors"
         >
           <div className="flex items-center gap-3">

@@ -93,7 +93,7 @@ export async function submitProductToQueue(params: {
   }
 
   const modelId = await resolveBoundModelId({ product, userId });
-  const persistedSceneId = [product.selectedStyleId, product.stylePreference].find(
+  const persistedSceneId = [product.selectedSceneId, product.scenePreference].find(
     (value): value is string => typeof value === "string" && isValidSceneId(value)
   );
   if (!persistedSceneId) {

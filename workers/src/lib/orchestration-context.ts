@@ -135,8 +135,8 @@ export async function loadOrchestrationContext(
     selectedModel,
     scene: resolveScene(
       payload.scene,
-      product.selectedStyleId,
-      product.stylePreference
+      product.selectedSceneId,
+      product.scenePreference
     ),
   };
 }

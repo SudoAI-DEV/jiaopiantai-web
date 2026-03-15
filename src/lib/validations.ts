@@ -54,7 +54,7 @@ export const feedbackSchema = z.object({
     "satisfied",
     "need_revision",
     "quality_issue",
-    "style_not_match",
+    "scene_not_match",
     "other",
   ], {
     message: "无效的反馈类型",

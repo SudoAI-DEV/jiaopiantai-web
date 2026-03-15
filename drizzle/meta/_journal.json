@@ -43,6 +43,13 @@
       "when": 1773548653762,
       "tag": "0005_product-model-library",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1773555273765,
+      "tag": "0006_bitter_kid_colt",
+      "breakpoints": true
     }
   ]
 }

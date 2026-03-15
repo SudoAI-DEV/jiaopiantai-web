@@ -144,10 +144,10 @@ export async function POST(request: NextRequest) {
         typeof shootingRequirements === "string" && shootingRequirements.trim().length > 0
           ? shootingRequirements.trim()
           : null,
-      stylePreference: selectedScene.id,
+      scenePreference: selectedScene.id,
       specialNotes: specialNotes || null,
       deliveryCount: deliveryCount || 6,
-      selectedStyleId: selectedScene.id,
+      selectedSceneId: selectedScene.id,
       batchNumber: resolvedBatchNumber,
       status: "draft",
       createdAt: new Date(),

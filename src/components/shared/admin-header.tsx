@@ -16,7 +16,7 @@ const adminNavItems = [
   { href: "/admin/customers", label: "客户管理", icon: "👥" },
   { href: "/admin/products", label: "产品管理", icon: "📦" },
   { href: "/admin/credits", label: "点数管理", icon: "💰" },
-  { href: "/admin/styles", label: "风格模板", icon: "🎨" },
+  { href: "/admin/scenes", label: "场景模板", icon: "🎨" },
 ];
 
 export function AdminHeader({ user }: AdminHeaderProps) {

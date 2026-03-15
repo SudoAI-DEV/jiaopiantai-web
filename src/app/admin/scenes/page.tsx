@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "场景模板管理",
 };
 
-export default async function AdminStylesPage() {
+export default async function AdminScenesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}

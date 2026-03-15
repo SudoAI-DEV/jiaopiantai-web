@@ -702,7 +702,7 @@ async function importProducts(
         .select({
           id: schema.products.id,
           batchNumber: schema.products.batchNumber,
-          selectedStyleId: schema.products.selectedStyleId,
+          selectedSceneId: schema.products.selectedSceneId,
           modelId: schema.products.modelId,
         })
         .from(schema.products)
@@ -723,7 +723,7 @@ async function importProducts(
         // Patch missing fields on existing products
         const updates: Record<string, unknown> = {};
         if (!existing[0].batchNumber) updates.batchNumber = product.batchNumber;
-        if (!existing[0].selectedStyleId && product.sceneId) updates.selectedStyleId = product.sceneId;
+        if (!existing[0].selectedSceneId && product.sceneId) updates.selectedSceneId = product.sceneId;
         if (!existing[0].modelId && product.modelImageFile) {
           const mid = modelIds[product.modelImageFile];
           if (mid) updates.modelId = mid;
@@ -758,8 +758,8 @@ async function importProducts(
         name: `${shortBatchName(product.orderBatch)}-${product.sceneStyle}-${product.productNumber}`,
         category: "clothing",
         status: "reviewing",
-        selectedStyleId: product.sceneId,
-        stylePreference: product.sceneStyle,
+        selectedSceneId: product.sceneId,
+        scenePreference: product.sceneStyle,
         shootingRequirements: customReqs?.length ? customReqs.join("\n") : null,
         specialNotes: product.statusNote,
         modelId: resolvedModelId,
